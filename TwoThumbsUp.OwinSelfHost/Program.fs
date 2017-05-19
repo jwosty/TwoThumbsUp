@@ -9,25 +9,24 @@ type EndPoint = | [<EndPoint "GET /">] Index
 module Templating =
     open System.Web
 
-    type Page = { Title: string; Body: Element list }
+    type Page = { title: string; bodyTitle: string; body: Element list;  }
 
     let MainTemplate =
         Content.Template<Page>("~/Main.html")
-               .With("title", fun x -> x.Title)
-               .With("body", fun x -> x.Body)
+               .With("title", fun x -> x.title)
+               .With("bodyTitle", fun x -> x.bodyTitle)
+               .With("body", fun x -> x.body)
     
-    let Main context endPoint title body =
-        Content.WithTemplate MainTemplate { Title = title; Body = body }
+    let Main context endPoint title bodyTitle body =
+        Content.WithTemplate MainTemplate { title = title; bodyTitle = bodyTitle; body = body }
 
 module Site =
     let IndexPage context =
-        Templating.Main context EndPoint.Index "Hello WebSharper" [
-            H2 [Text "Welcome to Hello WebSharper."]
+        Templating.Main context EndPoint.Index "Create vote" "Create vote" [
             I [Text "Fancy stuff here"]
         ]
 
     let Main : Sitelet<EndPoint> =
-        
         Sitelet.Infer (fun context endPoint ->
             try
                 match endPoint with
@@ -40,7 +39,6 @@ open System.Net.NetworkInformation
 open System.Net.Sockets
 
 module Main =
-
     [<EntryPoint>]
     let main args =
         let localIp =

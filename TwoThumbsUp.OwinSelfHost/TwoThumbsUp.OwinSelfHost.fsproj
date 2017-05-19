@@ -45,6 +45,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="AppState.fs" />
     <Compile Include="Program.fs" />
     <None Include="paket.references" />
     <None Include="Main.html">
