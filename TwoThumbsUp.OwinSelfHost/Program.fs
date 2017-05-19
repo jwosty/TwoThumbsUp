@@ -4,7 +4,8 @@ open WebSharper.Html.Server
 open WebSharper
 open WebSharper.Sitelets
 
-type EndPoint = | [<EndPoint "GET /">] Index
+type EndPoint =
+    | [<EndPoint "GET /">] Index
 
 module Templating =
     open System.Web
@@ -23,7 +24,7 @@ module Templating =
 module Site =
     let IndexPage context =
         Templating.Main context EndPoint.Index "Create vote" "Create vote" [
-            I [Text "Fancy stuff here"]
+            Div [ClientSide <@ Client.form_createVote () @> ]
         ]
 
     let Main : Sitelet<EndPoint> =
