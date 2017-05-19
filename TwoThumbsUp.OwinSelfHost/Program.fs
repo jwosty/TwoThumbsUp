@@ -27,19 +27,30 @@ module Site =
         ]
 
     let Main : Sitelet<EndPoint> =
+        
         Sitelet.Infer (fun context endPoint ->
             try
                 match endPoint with
                 | Index -> IndexPage context
             with e ->
                 System.Console.Error.WriteLine ("Error while serving page:\n" + e.Message)
-                //|> Async.AwaitTask |> Async.Start
                 raise e)
 
+open System.Net.NetworkInformation
+open System.Net.Sockets
+
 module Main =
-    let rec loop () = loop ()
 
     [<EntryPoint>]
     let main args =
-        WebSharper.Warp.RunAndWaitForInput Site.Main |> ignore
-        loop ()
+        let localIp =
+            NetworkInterface.GetAllNetworkInterfaces ()
+            |> Seq.tryPick (fun netInterface ->
+                match netInterface.NetworkInterfaceType with
+                | NetworkInterfaceType.Wireless80211 | NetworkInterfaceType.Ethernet ->
+                    netInterface.GetIPProperties().UnicastAddresses
+                    |> Seq.tryPick (fun addrInfo ->
+                        if addrInfo.Address.AddressFamily = AddressFamily.InterNetwork then Some(string addrInfo.Address) else None)
+                | _ -> None)
+        let urls = List.choose id [localIp; Some "localhost"] |> List.map (fun host -> "http://" + host + ":8080")
+        WebSharper.Warp.RunAndWaitForInput (Site.Main, urls = urls, debug = true)
