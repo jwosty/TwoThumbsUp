@@ -1,0 +1,11 @@
+FSharp.Core
+System.ValueTuple
+Microsoft.AspNet.WebApi.WebHost
+Microsoft.Owin.Host.SystemWeb
+WebSharper
+WebSharper.Owin
+Microsoft.Owin.StaticFiles
+Microsoft.AspNet.WebApi.Client
+Microsoft.Owin
+Owin
+Microsoft.AspNet.WebApi

@@ -1,0 +1,12 @@
+[Oo]bj/
+[Bb]in/
+[Dd]ebug/
+[Rr]elease/
+packages/
+*.userprefs
+*.dll
+
+paket.lock
+
+# Emacs autosave files
+*~
