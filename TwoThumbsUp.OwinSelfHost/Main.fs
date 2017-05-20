@@ -23,19 +23,23 @@ module Templating =
         Content.WithTemplate MainTemplate { title = title; bodyTitle = bodyTitle; body = body }
 
 module Site =
-    let IndexPage =
+    let IndexPage defaultVotingRoomName =
         Templating.Main Index "Create a voting room" "Create a voting room" [
-            Div [ClientSide <@ Client.form_createVote () @> ]
+            Div [ClientSide <@ Client.form_createVote defaultVotingRoomName @> ]
         ]
     
-    let VotePage sessionName =
-        Templating.Main Vote "Vote!" ("Vote at: " + sessionName) [ ]
+    let VotePage votingRoomName =
+        match AppState.Api.tryGetVotingRoom votingRoomName |> Async.RunSynchronously with
+        | Some(votingRoom) ->
+            Templating.Main Vote "Vote!" ("Vote at: " + votingRoomName) [
+                Div [ClientSide <@ Client.form_submitVote votingRoom @>]]
+        | None -> IndexPage votingRoomName
 
     let Main : Sitelet<EndPoint> =
         Sitelet.Infer (fun context endPoint ->
             try
                 match endPoint with
-                | Index -> IndexPage
+                | Index -> IndexPage ""
                 | Vote(sessionName) -> VotePage sessionName
             with e ->
                 System.Console.Error.WriteLine ("Error while serving page:\n" + e.Message)

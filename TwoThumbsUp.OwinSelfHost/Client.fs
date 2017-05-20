@@ -8,13 +8,13 @@ open WebSharper.JavaScript
 module Client =
     let x = 42
 
-    let form_createVote () =
+    let form_createVote defaultVotingRoomName =
         // TODO: Make bracket style consistent.... Idk what looks best
         let optionsDiv = Div []
         let mutable inputs = []
         let submitButton = Input [Attr.Type "button"; Attr.Value "Submit & view"; Attr.TabIndex "0"]
-        let votingRoomInput = Input [Attr.Type "text"; Attr.Name ""
-                                     Attr.AutoComplete "off"; Attr.TabIndex "1"]
+        let votingRoomNameInput = Input [Attr.Type "text"; Attr.Value defaultVotingRoomName
+                                         Attr.AutoComplete "off"; Attr.TabIndex "1"]
         
         let addNewInput () =
             let newInput = Input [Attr.Type "text"
@@ -27,7 +27,7 @@ module Client =
         addNewInput ()
         
         Div
-          [ Span [Text "twothumbsup.com/vote/"]; votingRoomInput
+          [ Span [Text "twothumbsup.com/vote/"]; votingRoomNameInput
             Br []
             Button [Text "+"] |>! OnClick (fun x e -> addNewInput ())
             Br []
@@ -35,7 +35,15 @@ module Client =
             submitButton
             |>! OnClick (fun x e ->
                 async {
-                    do! inputs |> List.map (fun x -> x.Value) |> AppState.Api.createVotingRoom votingRoomInput.Value
-                    JS.Window.Location.Pathname <- "/vote/" + votingRoomInput.Value
+                    do! inputs |> List.map (fun x -> x.Value) |> List.rev
+                        |> AppState.Api.createVotingRoom votingRoomNameInput.Value
+                    JS.Window.Location.Pathname <- "/vote/" + votingRoomNameInput.Value
                     return () }
                 |> Async.Start ) ]
+    
+    let form_submitVote session =
+        Div
+           [let (Voting(votes)) = session
+            for kv in votes do
+                let option, votes = kv.Key, kv.Value
+                yield Div [Text option]]
