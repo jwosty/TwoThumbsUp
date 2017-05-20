@@ -6,12 +6,14 @@ open WebSharper.Sitelets
 
 type EndPoint =
     | [<EndPoint "GET /">] Index
-    | [<EndPoint "GET /vote">] Vote of votingRoomName:string
+    | [<EndPoint "GET /vote">] Vote of escapedVotingRoomName:string
 
 module Templating =
     open System.Web
 
-    type Page = { title: string; bodyTitle: string; body: Element list;  }
+    /// Note: It seems that any string content in templates is already treated as dangerous
+    /// by WebSharper and therefore escaped for us when the page is rendered (later). Hooray!
+    type Page = { title: string; bodyTitle: string; body: Element list }
 
     let MainTemplate =
         Content.Template<Page>("~/Main.html")
@@ -31,6 +33,8 @@ module Site =
     let VotePage votingRoomName =
         match AppState.Api.tryGetVotingRoom votingRoomName |> Async.RunSynchronously with
         | Some(votingRoom) ->
+            // WebSharper templating automatically performs escaping here, so it's safe
+            // to just stitch strings together here
             Templating.Main Vote "Vote!" ("Vote at: " + votingRoomName) [
                 Div [ClientSide <@ Client.form_submitVote votingRoom @>]]
         | None -> IndexPage votingRoomName
@@ -40,7 +44,7 @@ module Site =
             try
                 match endPoint with
                 | Index -> IndexPage ""
-                | Vote(sessionName) -> VotePage sessionName
+                | Vote(escapedVotingRoomName) -> VotePage (Uri.UnescapeDataString escapedVotingRoomName)
             with e ->
                 System.Console.Error.WriteLine ("Error while serving page:\n" + e.Message)
                 raise e)

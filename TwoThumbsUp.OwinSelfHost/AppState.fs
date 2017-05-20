@@ -47,7 +47,7 @@ module AppState =
         
         [<Rpc>]
         let tryGetVotingRoom votingRoomName = async { return lock _lock (fun () ->
-            Dictionary.tryGetValue votingRoomName state.activeVotingRooms ) }
+            Dictionary.tryGetValue votingRoomName state.activeVotingRooms) }
         
         [<Rpc>]
         /// Adds a vote to a given session, returning whether or not the operation was successful

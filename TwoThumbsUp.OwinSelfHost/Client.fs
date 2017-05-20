@@ -35,7 +35,7 @@ module Client =
                 async {
                     do! inputs |> List.map (fun x -> x.Value) |> List.rev
                         |> AppState.Api.createVotingRoom votingRoomNameInput.Value
-                    JS.Window.Location.Pathname <- "/vote/" + votingRoomNameInput.Value
+                    JS.Window.Location.Pathname <- "/vote/" + JS.EncodeURIComponent votingRoomNameInput.Value
                     return () }
                 |> Async.Start ) ]
     
