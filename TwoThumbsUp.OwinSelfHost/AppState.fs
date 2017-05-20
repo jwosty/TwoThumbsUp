@@ -26,40 +26,40 @@ module Vote =
     let toStrMap = Map.toList fromStrMap |> List.map (fun (s, v) -> v, s) |> Map.ofList
 
 [<JavaScript>]
-type VotingSessionState =
+type VotingRoomState =
     | Voting of votes: Map<string, Map<Vote, int>>
 
-type AppState = { activeVotingSessions: Dictionary<string, VotingSessionState> }
+type AppState = { activeVotingRooms: Dictionary<string, VotingRoomState> }
 
 module AppState =
     // TODO: Agents?
     let _lock = new System.Object()
     
-    let state = { activeVotingSessions = new Dictionary<_, _>() }
+    let state = { activeVotingRooms = new Dictionary<_, _>() }
 
     module Api =
         [<Rpc>]
-        let createVoteSession sessionName options = async { lock _lock (fun () ->
+        let createVotingRoom votingRoomName options = async { lock _lock (fun () ->
             let options =
                     List.filter (not << System.String.IsNullOrWhiteSpace) options
                     |> List.map (fun o -> o, Vote.values |> List.map (fun value -> value, 0) |> Map.ofList) |> Map.ofList
-            state.activeVotingSessions.Add (sessionName, Voting(options))) }
+            state.activeVotingRooms.Add (votingRoomName, Voting(options))) }
         
         [<Rpc>]
-        let tryGetVotingSession (sessionName: string) = async { return lock _lock (fun () ->
-            Dictionary.tryGetValue sessionName state.activeVotingSessions ) }
+        let tryGetVotingRoom votingRoomName = async { return lock _lock (fun () ->
+            Dictionary.tryGetValue votingRoomName state.activeVotingRooms ) }
         
         [<Rpc>]
         /// Adds a vote to a given session, returning whether or not the operation was successful
-        let submitVote sessionName (votes: Map<string, Vote>) = async {
+        let submitVote votingRoomName (votes: Map<string, Vote>) = async {
             return lock _lock (fun () ->
-                match Dictionary.tryGetValue sessionName state.activeVotingSessions with
+                match Dictionary.tryGetValue votingRoomName state.activeVotingRooms with
                 | Some(Voting(voteCounts)) ->
                     let voteCounts' =
                         voteCounts |> Map.map (fun option votesInfo ->
                             votesInfo |> Map.map (fun vote voteCount ->
                                 if votes.[option] = vote then voteCount + 1
                                 else voteCount))
-                    state.activeVotingSessions.[sessionName] <- Voting(voteCounts')
+                    state.activeVotingRooms.[votingRoomName] <- Voting(voteCounts')
                     true
                 | None -> false )}

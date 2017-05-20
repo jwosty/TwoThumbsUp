@@ -6,7 +6,7 @@ open WebSharper.Sitelets
 
 type EndPoint =
     | [<EndPoint "GET /">] Index
-    | [<EndPoint "GET /vote">] Vote of sessionName:string
+    | [<EndPoint "GET /vote">] Vote of votingRoomName:string
 
 module Templating =
     open System.Web
@@ -24,12 +24,12 @@ module Templating =
 
 module Site =
     let IndexPage =
-        Templating.Main Index "Create vote" "Create vote" [
+        Templating.Main Index "Create a voting room" "Create a voting room" [
             Div [ClientSide <@ Client.form_createVote () @> ]
         ]
     
     let VotePage sessionName =
-        Templating.Main Vote "Vote!" ("Vote: " + sessionName) [ ]
+        Templating.Main Vote "Vote!" ("Vote at: " + sessionName) [ ]
 
     let Main : Sitelet<EndPoint> =
         Sitelet.Infer (fun context endPoint ->
