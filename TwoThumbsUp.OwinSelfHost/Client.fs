@@ -8,7 +8,7 @@ open WebSharper.JQuery
 [<JavaScript>]
 module Client =
     let setResultInfo message = JQuery.Of("#resultInfo").Text message |> ignore
-    
+
     let form_createVote defaultVotingRoomName =
         // TODO: Make bracket style consistent.... Idk what looks best
         let optionsDiv = Div []
