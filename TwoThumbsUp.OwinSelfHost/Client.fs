@@ -3,9 +3,12 @@
 open WebSharper
 open WebSharper.Html.Client
 open WebSharper.JavaScript
+open WebSharper.JQuery
 
 [<JavaScript>]
 module Client =
+    let setResultInfo message = JQuery.Of("#resultInfo").Text message |> ignore
+    
     let form_createVote defaultVotingRoomName =
         // TODO: Make bracket style consistent.... Idk what looks best
         let optionsDiv = Div []
@@ -38,10 +41,11 @@ module Client =
                         |> AppState.Api.tryCreateVotingRoom votingRoomNameInput.Value
                     match result with
                     | AppState.Api.Success ->
+                        setResultInfo ""
                         JS.Window.Location.Pathname <- "/vote/" + JS.EncodeURIComponent votingRoomNameInput.Value
-                    | AppState.Api.NameTaken -> printfn "Name already taken"
-                    | AppState.Api.InvalidOptions -> printfn "At least one option must be added"
-                    | AppState.Api.InvalidName -> printfn "Voting room name cannot be empty"
+                    | AppState.Api.NameTaken -> setResultInfo "Name already taken"
+                    | AppState.Api.InvalidOptions -> setResultInfo "At least one option must be added"
+                    | AppState.Api.InvalidName -> setResultInfo "Voting room name cannot be empty"
                     return () }
                 |> Async.Start ) ]
     
