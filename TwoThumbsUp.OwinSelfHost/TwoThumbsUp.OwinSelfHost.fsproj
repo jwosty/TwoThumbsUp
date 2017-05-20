@@ -44,11 +44,11 @@
     <Reference Include="System.Numerics" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="paket.references" />
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="AppState.fs" />
-	<Compile Include="Client.fs" />
-    <Compile Include="Program.fs" />
-    <None Include="paket.references" />
+    <Compile Include="Client.fs" />
+    <Compile Include="Main.fs" />
     <None Include="Main.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

@@ -36,29 +36,30 @@ module AppState =
     let _lock = new System.Object()
     
     let state = { activeVotingSessions = new Dictionary<_, _>() }
-    
-    [<Rpc>]
-    let createVoteSession sessionName options = async { lock _lock (fun () ->
-        let options =
-            List.filter (not << System.String.IsNullOrWhiteSpace) options
-            |> List.map (fun o -> o, Vote.values |> List.map (fun value -> value, 0) |> Map.ofList) |> Map.ofList
-        state.activeVotingSessions.Add (sessionName, Voting(options))) }
-    
-    [<Rpc>]
-    let tryGetVotingSession (sessionName: string) = async { return lock _lock (fun () ->
-        Dictionary.tryGetValue sessionName state.activeVotingSessions ) }
-    
-    [<Rpc>]
-    /// Adds a vote to a given session, returning whether or not the operation was successful
-    let submitVote sessionName (votes: Map<string, Vote>) = async {
-        return lock _lock (fun () ->
-            match Dictionary.tryGetValue sessionName state.activeVotingSessions with
-            | Some(Voting(voteCounts)) ->
-                let voteCounts' =
-                    voteCounts |> Map.map (fun option votesInfo ->
-                        votesInfo |> Map.map (fun vote voteCount ->
-                            if votes.[option] = vote then voteCount + 1
-                            else voteCount))
-                state.activeVotingSessions.[sessionName] <- Voting(voteCounts')
-                true
-            | None -> false )}
+
+    module Api =
+        [<Rpc>]
+        let createVoteSession sessionName options = async { lock _lock (fun () ->
+            let options =
+                    List.filter (not << System.String.IsNullOrWhiteSpace) options
+                    |> List.map (fun o -> o, Vote.values |> List.map (fun value -> value, 0) |> Map.ofList) |> Map.ofList
+            state.activeVotingSessions.Add (sessionName, Voting(options))) }
+        
+        [<Rpc>]
+        let tryGetVotingSession (sessionName: string) = async { return lock _lock (fun () ->
+            Dictionary.tryGetValue sessionName state.activeVotingSessions ) }
+        
+        [<Rpc>]
+        /// Adds a vote to a given session, returning whether or not the operation was successful
+        let submitVote sessionName (votes: Map<string, Vote>) = async {
+            return lock _lock (fun () ->
+                match Dictionary.tryGetValue sessionName state.activeVotingSessions with
+                | Some(Voting(voteCounts)) ->
+                    let voteCounts' =
+                        voteCounts |> Map.map (fun option votesInfo ->
+                            votesInfo |> Map.map (fun vote voteCount ->
+                                if votes.[option] = vote then voteCount + 1
+                                else voteCount))
+                    state.activeVotingSessions.[sessionName] <- Voting(voteCounts')
+                    true
+                | None -> false )}
