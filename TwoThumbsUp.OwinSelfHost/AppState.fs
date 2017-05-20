@@ -1,6 +1,7 @@
 ﻿namespace TwoThumbsUp
 open WebSharper
 open WebSharper.Sitelets
+open System
 open System.Collections.Generic
 open System.Web
 
@@ -39,15 +40,26 @@ module AppState =
 
     module Api =
         [<Rpc>]
-        let createVotingRoom votingRoomName options = async { lock _lock (fun () ->
-            let options =
-                    List.filter (not << System.String.IsNullOrWhiteSpace) options
-                    |> List.map (fun o -> o, Vote.values |> List.map (fun value -> value, 0) |> Map.ofList) |> Map.ofList
-            state.activeVotingRooms.Add (votingRoomName, Voting(options))) }
-        
-        [<Rpc>]
         let tryGetVotingRoom votingRoomName = async { return lock _lock (fun () ->
             Dictionary.tryGetValue votingRoomName state.activeVotingRooms) }
+        
+        type TryCreateVotingRoomResult = | Success | InvalidName | InvalidOptions | NameTaken
+
+        [<Rpc>]
+        let tryCreateVotingRoom votingRoomName options = async {
+            if System.String.IsNullOrWhiteSpace votingRoomName then
+                return InvalidName
+            else
+                let options = List.filter (not << System.String.IsNullOrWhiteSpace) options
+                let optionsMap = options |> List.map (fun o -> o, Vote.values |> List.map (fun value -> value, 0) |> Map.ofList) |> Map.ofList
+                return lock _lock (fun () ->
+                    if state.activeVotingRooms.ContainsKey votingRoomName then
+                        NameTaken
+                    elif options.Length = 0 then
+                        InvalidOptions
+                    else
+                        state.activeVotingRooms.Add (votingRoomName, Voting(optionsMap))
+                        Success) }
         
         [<Rpc>]
         /// Adds a vote to a given session, returning whether or not the operation was successful

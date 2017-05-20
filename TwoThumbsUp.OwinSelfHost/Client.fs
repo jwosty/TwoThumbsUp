@@ -33,9 +33,15 @@ module Client =
             submitButton
             |>! OnClick (fun x e ->
                 async {
-                    do! inputs |> List.map (fun x -> x.Value) |> List.rev
-                        |> AppState.Api.createVotingRoom votingRoomNameInput.Value
-                    JS.Window.Location.Pathname <- "/vote/" + JS.EncodeURIComponent votingRoomNameInput.Value
+                    let! result =
+                        inputs |> List.map (fun x -> x.Value) |> List.rev
+                        |> AppState.Api.tryCreateVotingRoom votingRoomNameInput.Value
+                    match result with
+                    | AppState.Api.Success ->
+                        JS.Window.Location.Pathname <- "/vote/" + JS.EncodeURIComponent votingRoomNameInput.Value
+                    | AppState.Api.NameTaken -> printfn "Name already taken"
+                    | AppState.Api.InvalidOptions -> printfn "At least one option must be added"
+                    | AppState.Api.InvalidName -> printfn "Voting room name cannot be empty"
                     return () }
                 |> Async.Start ) ]
     
