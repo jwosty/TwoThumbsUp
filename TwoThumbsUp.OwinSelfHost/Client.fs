@@ -6,8 +6,6 @@ open WebSharper.JavaScript
 
 [<JavaScript>]
 module Client =
-    let x = 42
-
     let form_createVote defaultVotingRoomName =
         // TODO: Make bracket style consistent.... Idk what looks best
         let optionsDiv = Div []
@@ -41,9 +39,9 @@ module Client =
                     return () }
                 |> Async.Start ) ]
     
-    let form_submitVote session =
+    let form_submitVote votingRoom =
         Div
-           [let (Voting(votes)) = session
+           [let (Voting(votes)) = votingRoom
             for kv in votes do
                 let option, votes = kv.Key, kv.Value
                 yield Div [Text option]]
