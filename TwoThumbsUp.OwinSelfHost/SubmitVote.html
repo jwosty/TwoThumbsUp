@@ -4,22 +4,22 @@
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>${title}</title>
+    <title>Vote!</title>
     <script data-replace="scripts"></script>
     <!-- TODO: Add this as a WebSharper dependency instead of embedding in the HTML -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous"/>
-    <link rel="stylesheet" href="/Main.css"/>
+    <link rel="stylesheet" href="/main-styling.css"/>
     <style></style>
 </head>
 <body>
     <div class="container">
         <div class="content">
             <div class="row">
-                <h2>${bodyTitle}</h2>
-                <div id="resultInfo"></div>
+                <h2>${title}</h2>
                 <div data-replace="body"></div>
             </div>
         </div>
     </div>
+    <div data-replace="client-scripts"></div>
 </body>
 </html>

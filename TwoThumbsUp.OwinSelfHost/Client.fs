@@ -9,17 +9,39 @@ open WebSharper.JQuery
 module Client =
     let setResultInfo message = JQuery.Of("#resultInfo").Text message |> ignore
 
+    let on (e: string) f (x: JQuery) = x.On(e, f)
+
     let inputButton children = Input [Attr.Type "button"] -< children
 
-    let form_createVote defaultVotingRoomName =
+    let form_createVote (defaultVotingRoomName: string) =
+        let mutable inputs = []
+
+        let addNewInput () =
+            let newInput =
+                Input [Attr.Class "optionInput"]
+                   -< [Attr.Type "text"; Attr.Class "form-control"
+                       Attr.Name ("option" + string inputs.Length)
+                       Attr.AutoComplete "off" ]
+            (Div [Attr.Class "row"] -< [Div [Attr.Class "col-xs-5"] -< [newInput]]).AppendTo "option-inputs"
+            (Br []).AppendTo "option-inputs"
+            inputs <- newInput :: inputs
+
+        JQuery.Of "#add-option" |> on "click" (fun x e ->
+            printfn "+"
+            addNewInput ()) |> ignore
+        JQuery.Of "#submit-vote-session" |> on "click" (fun x e -> printfn "clicked") |> ignore
+        Div []
+
+    let form_createVoteOld defaultVotingRoomName =
         // TODO: Make bracket style consistent.... Idk what looks best
         // also TODO: Refactor some of this out into the template HTML. We don't really need to generate _all_ of this with JS
         let optionsDiv = Div []
         let mutable inputs = []
-        let submitButton = Input [Attr.Type "button"; Attr.Class "btn btn-defaul"; Attr.Value "Submit & view"; Attr.TabIndex "0"]
+        let submitButton = Input [Attr.Type "button"; Attr.Class "btn btn-default"; Attr.Value "Submit & view"; Attr.TabIndex "0"]
         let votingRoomNameInput =
             Input [Attr.Type "text"; Attr.Class "form-control"; Attr.Id "input-url"
                    NewAttr "aria-describedby" "url-addon"
+
                    Attr.AutoComplete "off"; NewAttr "autocapitalize" "none"
                    Attr.Value defaultVotingRoomName]
         

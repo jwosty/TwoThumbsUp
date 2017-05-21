@@ -49,10 +49,13 @@
     <Compile Include="AppState.fs" />
     <Compile Include="Client.fs" />
     <Compile Include="Main.fs" />
-    <None Include="Main.html">
+    <None Include="CreateVote.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="Main.css">
+    <None Include="SubmitVote.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="main-styling.css">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
