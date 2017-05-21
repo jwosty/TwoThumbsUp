@@ -16,8 +16,9 @@ module Templating =
     //type Page = { title: string; bodyTitle: string; body: Element list }
 
     let TemplateCreateVote =
-        Content.Template<Element list>("~/CreateVote.html")
-               .With("client-scripts", fun clientCode -> clientCode)
+        Content.Template<_>("~/CreateVote.html")
+               .With("vote-name", fun (voteName: string, _) -> voteName)
+               .With("client-scripts", fun (_, clientCode: Element list) -> clientCode)
 
     let TemplateSubmitVote =
         Content.Template<_>("~/SubmitVote.html")
@@ -27,7 +28,7 @@ module Templating =
 module Site =
     let IndexPage defaultVotingRoomName =
         Content.WithTemplate Templating.TemplateCreateVote
-            [Div [ClientSide <@ Client.form_createVote defaultVotingRoomName @> ]]
+            (defaultVotingRoomName, [Div [ClientSide <@ Client.form_createVote defaultVotingRoomName @> ]])
     
     let VotePage votingRoomName =
         match AppState.Api.tryGetVotingRoom votingRoomName |> Async.RunSynchronously with
