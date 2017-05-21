@@ -1,6 +1,7 @@
 ﻿namespace TwoThumbsUp
 
 open WebSharper
+open WebSharper.Html
 open WebSharper.Html.Client
 open WebSharper.JavaScript
 open WebSharper.JQuery
@@ -97,13 +98,27 @@ module Client =
             submitButton ]
     
     let form_viewVote votingRoomName =
-        let tableDiv = Div []
+        let tableDiv = Div [Attr.Class "table table-hover"]
         
         let render (votingRoomData: Map<string, Map<Vote, int>>) =
-            let table = Table []
+            let table =
+                Table
+                    [ yield TR [ yield TD [ Text "" ]
+                                 for vote in Vote.values -> TD [ Text (Vote.toStrMap.[vote]) ] ]
+                      for (option, voteTallies) in Map.toList votingRoomData do
+                          yield TR [ yield TD [ Align "right" ]
+                                           -< [B [ Text option ] ]
+                                     for (vote, tally) in Map.toList voteTallies do
+                                         yield TD [ Align "center"]
+                                               -< [Text (string tally) ] ] ]
+                (*Table [
+                    TR [
+                        yield TD []
+                        for v in Vote.values do
+                            yield TD [Text (Vote.toStrMap.[v])]]
+                ]*)
             tableDiv.Clear ()
-            //tableDiv.Append table
-            tableDiv.Append ((new System.Random()).Next () |> string)
+            tableDiv.Append table
 
         async {
             let! votingRoomData = AppState.Api.tryGetVotingRoomData votingRoomName
