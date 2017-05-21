@@ -27,8 +27,18 @@ module Vote =
     let toStrMap = Map.toList fromStrMap |> List.map (fun (s, v) -> v, s) |> Map.ofList
 
 [<JavaScript>]
-type VotingRoomState =
-    | Voting of votes: Map<string, Map<Vote, int>>
+type VotingRoomState(optionVotes: Map<string, Map<Vote, int>>) =
+    let onChange = new Event<VotingRoomState>()
+    let mutable optionVotes = optionVotes
+
+    member this.OnChange = onChange.Publish
+
+    member this.OptionVotes
+        with get () = optionVotes
+        and set newValue =
+            optionVotes <- newValue
+            printfn "CHANGED"
+            onChange.Trigger this
 
 type AppState = { activeVotingRooms: Dictionary<string, VotingRoomState> }
 
@@ -51,14 +61,14 @@ module AppState =
                 return InvalidName
             else
                 let options = List.filter (not << System.String.IsNullOrWhiteSpace) options
-                let optionsMap = options |> List.map (fun o -> o, Vote.values |> List.map (fun value -> value, 0) |> Map.ofList) |> Map.ofList
+                let optionVotes = options |> List.map (fun o -> o, Vote.values |> List.map (fun value -> value, 0) |> Map.ofList) |> Map.ofList
                 return lock _lock (fun () ->
                     if state.activeVotingRooms.ContainsKey votingRoomName then
                         NameTaken
                     elif options.Length = 0 then
                         InvalidOptions
                     else
-                        state.activeVotingRooms.Add (votingRoomName, Voting(optionsMap))
+                        state.activeVotingRooms.Add (votingRoomName, new VotingRoomState(optionVotes))
                         Success) }
         
         [<Rpc>]
@@ -66,12 +76,21 @@ module AppState =
         let submitVote votingRoomName (votes: Map<string, Vote>) = async {
             return lock _lock (fun () ->
                 match Dictionary.tryGetValue votingRoomName state.activeVotingRooms with
-                | Some(Voting(voteCounts)) ->
-                    let voteCounts' =
-                        voteCounts |> Map.map (fun option votesInfo ->
+                | Some(votingRoom) ->
+                    let optionVotes =
+                        votingRoom.OptionVotes |> Map.map (fun option votesInfo ->
                             votesInfo |> Map.map (fun vote voteCount ->
                                 if votes.[option] = vote then voteCount + 1
                                 else voteCount))
-                    state.activeVotingRooms.[votingRoomName] <- Voting(voteCounts')
+                    state.activeVotingRooms.[votingRoomName].OptionVotes <- optionVotes
                     true
                 | None -> false )}
+        
+        [<Rpc>]
+        let pollChange votingRoomName = async {
+            let! votingRoom = tryGetVotingRoom votingRoomName
+            match votingRoom with
+            | Some(votingRoom) ->
+                let! votingRoom = Async.AwaitEvent votingRoom.OnChange
+                return Some(votingRoom)
+            | None -> return None }

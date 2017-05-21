@@ -6,7 +6,8 @@ open WebSharper.Sitelets
 
 type EndPoint =
     | [<EndPoint "GET /">] Index
-    | [<EndPoint "GET /vote">] Vote of escapedVotingRoomName:string
+    | [<EndPoint "GET /vote">] Vote of escapedVotingRoomName: string
+    | [<EndPoint "GET /view">] ViewVote of escapedVotingRoomName: string
 
 module Templating =
     open System.Web
@@ -35,14 +36,19 @@ module Site =
                 ("Voting: " + votingRoomName, [Div [ClientSide <@ Client.form_submitVote votingRoomName votingRoom @>]])
         | None -> IndexPage votingRoomName
 
+    let ViewVotePage votingRoomName =
+        Content.WithTemplate Templating.TemplateSubmitVote
+            ("Viewing: " + votingRoomName, [Div [ClientSide <@ Client.form_viewVote votingRoomName @>]])
+
     let Main : Sitelet<EndPoint> =
         Sitelet.Infer (fun context endPoint ->
             try
                 match endPoint with
                 | Index -> IndexPage ""
                 | Vote(escapedVotingRoomName) -> VotePage (Uri.UnescapeDataString escapedVotingRoomName)
+                | ViewVote(escapedVotingRoomName) -> ViewVotePage (Uri.UnescapeDataString escapedVotingRoomName)
             with e ->
-                System.Console.Error.WriteLine ("Error while serving page:\n" + e.Message)
+                System.Console.Error.WriteLine ("Error while serving page:" + e.Message)
                 raise e)
 
 open System.Net.NetworkInformation

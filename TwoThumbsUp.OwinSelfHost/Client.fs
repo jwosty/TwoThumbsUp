@@ -30,9 +30,6 @@ module Client =
                                 yield Value radioButtonName
                                 if isFirst then yield Checked "" ]]
                          -< [Span [Text radioButtonName]]]]
-                    //yield Span [ Text radioButtonName ]
-                    //yield Br []
-                    //isFirst <- false ]
         html, (fun () ->
             let selection = JQuery.Of(sprintf "input[name=%s]:checked" radioButtonGroupName).Val() :?> string
             data |> List.find (fun (value, radioButtonName) -> selection = radioButtonName) |> fst)
@@ -72,12 +69,11 @@ module Client =
         addNewInput ()
         Div []
     
-    let form_submitVote votingRoomName votingRoom =
+    let form_submitVote votingRoomName (votingRoom: VotingRoomState) =
         let optionsDiv = Div []
         let submitButton = Button [ Attr.Class "btn btn-default"; Text "Cast vote" ]
-        let (Voting(options)) = votingRoom
 
-        let data = options |> Map.map (fun optionName optionVote ->
+        let data = votingRoom.OptionVotes |> Map.map (fun optionName optionVote ->
             // make a radio group for each option that exists
             let radioGroup, getSelection = makeRadioGroup optionName (Map.toList Vote.toStrMap |> List.rev)
             let element =
@@ -98,3 +94,12 @@ module Client =
         Div [
             optionsDiv
             submitButton ]
+    
+    let form_viewVote votingRoomName =
+        async {
+            while true do
+                printfn "waiting for change..."
+                let! votingRoom = AppState.Api.pollChange votingRoomName
+                printfn "got change!" }
+        |> Async.Start
+        Div []
