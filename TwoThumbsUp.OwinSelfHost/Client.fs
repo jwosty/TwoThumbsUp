@@ -49,7 +49,6 @@ module Client =
             inputs <- newInput :: inputs
 
         JQuery("#add-option") |> on "click" (fun x e ->
-            printfn "+"
             addNewInput ()) |> ignore
         
         JQuery("#submit-vote-session") |> on "click" (fun x e ->
@@ -86,7 +85,6 @@ module Client =
         
         submitButton |> OnClick (fun x e ->
             async {
-                printfn "submitting vote (client)"
                 let! success =
                     data |> Map.map (fun name getSelection -> getSelection ())
                     |> AppState.Api.submitVote votingRoomName
@@ -124,11 +122,9 @@ module Client =
         async {
             let mutable voteExists = true
             while voteExists do
-                printfn "waiting for change..."
                 let! votingRoomData = AppState.Api.pollChange votingRoomName
                 match votingRoomData with
                 | Some(votingRoomData) ->
-                    printfn "Incoming vote"
                     render votingRoomData
                 | None ->
                     setResultInfo "Vote does not exist"
