@@ -20,15 +20,19 @@ module Client =
         let html =
             let mutable isFirst = true
             Form [
-                for (value, radioButtonName) in data do
-                    yield Input [
-                        yield Type "radio"
-                        yield Name radioButtonGroupName
-                        yield Value radioButtonName
-                        if isFirst then yield Checked "" ]
-                    yield Span [ Text radioButtonName ]
-                    yield Br []
-                    isFirst <- false ]
+                for (value, radioButtonName) in data ->
+                    isFirst <- false
+                    Div [Attr.Class "radio"]
+                     -< [Label [
+                            Input [
+                                yield Type "radio"
+                                yield Name radioButtonGroupName
+                                yield Value radioButtonName
+                                if isFirst then yield Checked "" ]]
+                         -< [Span [Text radioButtonName]]]]
+                    //yield Span [ Text radioButtonName ]
+                    //yield Br []
+                    //isFirst <- false ]
         html, (fun () ->
             let selection = JQuery.Of(sprintf "input[name=%s]:checked" radioButtonGroupName).Val() :?> string
             data |> List.find (fun (value, radioButtonName) -> selection = radioButtonName) |> fst)
