@@ -27,6 +27,7 @@ module Vote =
     let toStrMap = Map.toList fromStrMap |> List.map (fun (s, v) -> v, s) |> Map.ofList
 
 [<JavaScript>]
+/// NOTE: Don't try to RPC this whole structure over the wire -- Event is making deserialization fail
 type VotingRoomState(optionVotes: Map<string, Map<Vote, int>>) =
     let onChange = new Event<VotingRoomState>()
     let mutable optionVotes = optionVotes
@@ -37,7 +38,6 @@ type VotingRoomState(optionVotes: Map<string, Map<Vote, int>>) =
         with get () = optionVotes
         and set newValue =
             optionVotes <- newValue
-            printfn "CHANGED"
             onChange.Trigger this
 
 type AppState = { activeVotingRooms: Dictionary<string, VotingRoomState> }
@@ -49,9 +49,13 @@ module AppState =
     let state = { activeVotingRooms = new Dictionary<_, _>() }
 
     module Api =
+        let tryGetVotingRoom votingRoomName = lock _lock (fun () ->
+            Dictionary.tryGetValue votingRoomName state.activeVotingRooms)
+        
         [<Rpc>]
-        let tryGetVotingRoom votingRoomName = async { return lock _lock (fun () ->
-            Dictionary.tryGetValue votingRoomName state.activeVotingRooms) }
+        let tryGetVotingRoomData votingRoomName = async {
+            return tryGetVotingRoom votingRoomName
+                   |> Option.map (fun x -> x.OptionVotes) }
         
         type TryCreateVotingRoomResult = | Success | InvalidName | InvalidOptions | NameTaken
 
@@ -75,6 +79,7 @@ module AppState =
         /// Adds a vote to a given session, returning whether or not the operation was successful
         let submitVote votingRoomName (votes: Map<string, Vote>) = async {
             return lock _lock (fun () ->
+                printfn "recieving vote sumission"
                 match Dictionary.tryGetValue votingRoomName state.activeVotingRooms with
                 | Some(votingRoom) ->
                     let optionVotes =
@@ -88,9 +93,10 @@ module AppState =
         
         [<Rpc>]
         let pollChange votingRoomName = async {
-            let! votingRoom = tryGetVotingRoom votingRoomName
-            match votingRoom with
+            match tryGetVotingRoom votingRoomName with
             | Some(votingRoom) ->
+                printfn "awaiting..."
                 let! votingRoom = Async.AwaitEvent votingRoom.OnChange
-                return Some(votingRoom)
+                printfn "event fired"
+                return Some(votingRoom.OptionVotes)
             | None -> return None }

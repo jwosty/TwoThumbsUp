@@ -85,6 +85,7 @@ module Client =
         
         submitButton |> OnClick (fun x e ->
             async {
+                printfn "submitting vote (client)"
                 let! success =
                     data |> Map.map (fun name getSelection -> getSelection ())
                     |> AppState.Api.submitVote votingRoomName
@@ -96,10 +97,32 @@ module Client =
             submitButton ]
     
     let form_viewVote votingRoomName =
+        let tableDiv = Div []
+        
+        let render (votingRoomData: Map<string, Map<Vote, int>>) =
+            let table = Table []
+            tableDiv.Clear ()
+            //tableDiv.Append table
+            tableDiv.Append ((new System.Random()).Next () |> string)
+
         async {
-            while true do
+            let! votingRoomData = AppState.Api.tryGetVotingRoomData votingRoomName
+            match votingRoomData with
+            | Some(votingRoomData) -> render votingRoomData
+            | None -> setResultInfo "Vote does not exist"
+        } |> Async.Start
+
+        async {
+            let mutable voteExists = true
+            while voteExists do
                 printfn "waiting for change..."
-                let! votingRoom = AppState.Api.pollChange votingRoomName
-                printfn "got change!" }
+                let! votingRoomData = AppState.Api.pollChange votingRoomName
+                match votingRoomData with
+                | Some(votingRoomData) ->
+                    printfn "Incoming vote"
+                    render votingRoomData
+                | None ->
+                    setResultInfo "Vote does not exist"
+                    voteExists <- false }
         |> Async.Start
-        Div []
+        tableDiv

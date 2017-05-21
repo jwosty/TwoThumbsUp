@@ -28,7 +28,7 @@ module Site =
             (defaultVotingRoomName, [Div [ClientSide <@ Client.form_createVote defaultVotingRoomName @> ]])
     
     let VotePage votingRoomName =
-        match AppState.Api.tryGetVotingRoom votingRoomName |> Async.RunSynchronously with
+        match AppState.Api.tryGetVotingRoom votingRoomName with
         | Some(votingRoom) ->
             // WebSharper templating automatically performs escaping here, so it's safe
             // to just stitch strings together in this case
