@@ -1,6 +1,14 @@
 ﻿body {
 }
 
+.light-grey-text {
+    color: #999999;
+}
+
+.content {
+    padding-top: 40px;
+}
+
 #resultInfo {
-    color:red
+    color: red;
 }
