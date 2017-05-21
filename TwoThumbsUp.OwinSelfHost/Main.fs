@@ -30,11 +30,9 @@ module Site =
         match AppState.Api.tryGetVotingRoom votingRoomName |> Async.RunSynchronously with
         | Some(votingRoom) ->
             // WebSharper templating automatically performs escaping here, so it's safe
-            // to just stitch strings together here
+            // to just stitch strings together in this case
             Content.WithTemplate Templating.TemplateSubmitVote
-                ("Vote at: " + votingRoomName, [Div [ClientSide <@ Client.form_submitVote votingRoom @>]])
-            //Templating.IndexPage Vote "Vote!" ("Vote at: " + votingRoomName) [
-            //    Div [ClientSide <@ Client.form_submitVote votingRoom @>]]
+                ("Voting: " + votingRoomName, [Div [ClientSide <@ Client.form_submitVote votingRoomName votingRoom @>]])
         | None -> IndexPage votingRoomName
 
     let Main : Sitelet<EndPoint> =
