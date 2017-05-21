@@ -12,4 +12,5 @@ paket.lock
 # Emacs autosave files
 *~
 
+Scripts/
 Scripts/WebSharper
