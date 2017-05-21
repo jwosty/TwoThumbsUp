@@ -9,13 +9,14 @@ open WebSharper.JQuery
 module Client =
     let setResultInfo message = JQuery.Of("#resultInfo").Text message |> ignore
 
+    let inputButton children = Input [Attr.Type "button"] -< children
+
     let form_createVote defaultVotingRoomName =
         // TODO: Make bracket style consistent.... Idk what looks best
+        // also TODO: Refactor some of this out into the template HTML. We don't really need to generate _all_ of this with JS
         let optionsDiv = Div []
         let mutable inputs = []
-        let submitButton = Input [Attr.Type "button"; Attr.Value "Submit & view"; Attr.TabIndex "0"]
-        //let votingRoomNameInput = Input [Attr.Type "text"; Attr.Value defaultVotingRoomName
-        //                                 Attr.AutoComplete "off"; Attr.TabIndex "1"]
+        let submitButton = Input [Attr.Type "button"; Attr.Class "btn btn-defaul"; Attr.Value "Submit & view"; Attr.TabIndex "0"]
         let votingRoomNameInput =
             Input [Attr.Type "text"; Attr.Class "form-control"; Attr.Id "input-url"
                    NewAttr "aria-describedby" "url-addon"
@@ -25,7 +26,7 @@ module Client =
         let addNewInput () =
             let newInput =
                 Input [Attr.Class "optionInput"]
-                   -< [Attr.Type "text"
+                   -< [Attr.Type "text"; Attr.Class "form-control"
                        Attr.Name ("option" + string inputs.Length)
                        Attr.AutoComplete "off" ]
             optionsDiv.Append (Div [newInput])
@@ -35,25 +36,32 @@ module Client =
         addNewInput ()
         
         Div
-          [ Div [Attr.Class "input-group"]
-              -< [Span [Attr.Class"input-group-addon"; Attr.Id "url-addon"] -< [Text "twothumbsup.com/vote/"]]
-              -< [votingRoomNameInput]
-            Br []
-            Div [Button [Text "+"] |>! OnClick (fun x e -> addNewInput ())]
-            optionsDiv
-            Div [submitButton |>! OnClick (fun x e ->
-                    async {
-                        let! result =
-                            inputs |> List.map (fun x -> x.Value) |> List.rev
-                            |> AppState.Api.tryCreateVotingRoom votingRoomNameInput.Value
-                        match result with
-                        | AppState.Api.Success ->
-                            setResultInfo ""
-                            JS.Window.Location.Pathname <- "/vote/" + JS.EncodeURIComponent votingRoomNameInput.Value
-                        | AppState.Api.NameTaken -> setResultInfo "Name already taken"
-                        | AppState.Api.InvalidOptions -> setResultInfo "At least one option must be added"
-                        | AppState.Api.InvalidName -> setResultInfo "Voting room name cannot be empty" }
-                    |> Async.Start )]]
+          [ Div [Attr.Class "row"]
+            -< [Div [Attr.Class "col-xs-3"]
+               -< [Div [Attr.Class "input-group"]
+                   -< [Span [Attr.Class"input-group-addon"; Attr.Id "url-addon"] -< [Text "twothumbsup.com/vote/"]]
+                   -< [votingRoomNameInput]]]
+            -< [Div [Attr.Class "col-xs-9"]]
+            Div [Attr.Class "row"]
+            -< [Div [Attr.Class "col-xs-5"]
+                -< [Br []; Br []
+                    Div [inputButton [Attr.Class "btn btn-default btn-xs"; Attr.Value "+"] |>! OnClick (fun x e -> addNewInput ())]
+                    Br []
+                    optionsDiv
+                    Div [Attr.Class "option-inputs"]
+                     -< [submitButton |>! OnClick (fun x e ->
+                            async {
+                                let! result =
+                                    inputs |> List.map (fun x -> x.Value) |> List.rev
+                                    |> AppState.Api.tryCreateVotingRoom votingRoomNameInput.Value
+                                match result with
+                                | AppState.Api.Success ->
+                                    setResultInfo ""
+                                    JS.Window.Location.Pathname <- "/vote/" + JS.EncodeURIComponent votingRoomNameInput.Value
+                                | AppState.Api.NameTaken -> setResultInfo "Name already taken"
+                                | AppState.Api.InvalidOptions -> setResultInfo "At least one option must be added"
+                                | AppState.Api.InvalidName -> setResultInfo "Voting room name cannot be empty" }
+                            |> Async.Start )]]]]
     
     let form_submitVote votingRoom =
         Div

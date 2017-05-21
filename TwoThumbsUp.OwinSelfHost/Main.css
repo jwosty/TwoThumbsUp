@@ -9,6 +9,14 @@
     padding-top: 40px;
 }
 
+.option-inputs {
+    padding-top: 10px;
+}
+
+#input-url {
+    width: 80px;
+}
+
 #resultInfo {
     color: red;
 }
