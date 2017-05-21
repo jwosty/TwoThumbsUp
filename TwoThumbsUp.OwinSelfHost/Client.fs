@@ -51,6 +51,6 @@ module Client =
     let form_submitVote votingRoom =
         Div
            [let (Voting(votes)) = votingRoom
-            for kv in votes do
+            for kv in votes ->
                 let option, votes = kv.Key, kv.Value
-                yield Div [Text option]]
+                Div [Attr.Class "row"] -< [Div [Attr.Class "col-xs-5"] -< [Text option]]]

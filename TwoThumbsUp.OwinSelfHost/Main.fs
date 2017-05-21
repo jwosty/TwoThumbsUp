@@ -11,10 +11,6 @@ type EndPoint =
 module Templating =
     open System.Web
 
-    /// Note: It seems that any string content in templates is already treated as dangerous
-    /// by WebSharper and therefore escaped for us when the page is rendered (later). Hooray!
-    //type Page = { title: string; bodyTitle: string; body: Element list }
-
     let TemplateCreateVote =
         Content.Template<_>("~/CreateVote.html")
                .With("vote-name", fun (voteName: string, _) -> voteName)

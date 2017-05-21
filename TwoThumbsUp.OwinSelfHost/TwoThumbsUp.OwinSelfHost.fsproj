@@ -55,7 +55,7 @@
     <None Include="SubmitVote.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="main-styling.css">
+    <None Include="twothumbsup.css">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
