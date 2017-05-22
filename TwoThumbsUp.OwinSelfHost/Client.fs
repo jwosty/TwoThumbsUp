@@ -38,12 +38,12 @@ module Client =
             let selection = JQuery.Of(sprintf "input[name=\"%s\"]:checked" radioButtonGroupName).Val() :?> string
             data |> List.find (fun (value, radioButtonName) -> selection = radioButtonName) |> fst)
 
-    let makeTable (rows: _ list list) =
+    let makeTable (rows: (Pagelet list * _ list) list) =
         Table
            [for i in 0 .. rows.Length - 1 ->
-                let col = rows.[i]
-                TR
-                   [for j in 0 .. col.Length - 1 ->
+                let (colAttrs, col) = rows.[i]
+                TR colAttrs
+                 -< [for j in 0 .. col.Length - 1 ->
                         let tag = if i = 0 || j = 0 then TH else TD
                         let str, attributes = col.[j]
                         tag (Text str :: attributes) ]]
@@ -113,16 +113,16 @@ module Client =
         
         let render (votingRoomData: Map<string, Map<Vote, int>>) =
             // Note: this rebuilds the whole vote table (not a problem -- yet)
-            let voteResultData =
-              [ yield [ yield "Option", []
+            let voteResultData : (Pagelet list * (string * Pagelet list) list) list =
+              [ yield [],
+                      [ yield "Option", []
                         for vote in Vote.values -> Vote.toStrMap.[vote], [] ]
                 for (option, voteTallies) in Map.toList votingRoomData do
                     let hasVeto = voteTallies |> Map.exists (fun vote tally -> vote = TwoThumbsDown && tally > 0 )
-                    // TODO: apply this to the <tr> tag instead of every individual cell
-                    let attr = if hasVeto then [Attr.Class "danger"] else []
-                    yield [ yield option, attr
+                    yield [if hasVeto then yield Attr.Class "danger"],
+                          [ yield option, []
                             for (vote, tally) in Map.toList voteTallies do
-                                yield string tally, attr]]
+                                yield string tally, []]]
             let table = makeTable voteResultData -< [Attr.Class "table table-bordered"]
             tableDiv.Clear ()
             tableDiv.Append table
@@ -134,7 +134,7 @@ module Client =
             | Some(votingRoomData) -> render votingRoomData
             | None -> setResultInfo "Vote does not exist"
         } |> Async.Start
-
+        
         // Start an event loop to listen for incoming votes
         async {
             let mutable voteExists = true
