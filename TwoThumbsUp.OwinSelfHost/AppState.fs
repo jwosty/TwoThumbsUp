@@ -79,7 +79,6 @@ module AppState =
         /// Adds a vote to a given session, returning whether or not the operation was successful
         let submitVote votingRoomName (votes: Map<string, Vote>) = async {
             return lock _lock (fun () ->
-                printfn "recieving vote sumission"
                 match Dictionary.tryGetValue votingRoomName state.activeVotingRooms with
                 | Some(votingRoom) ->
                     let optionVotes =
@@ -95,8 +94,6 @@ module AppState =
         let pollChange votingRoomName = async {
             match tryGetVotingRoom votingRoomName with
             | Some(votingRoom) ->
-                printfn "awaiting..."
                 let! votingRoom = Async.AwaitEvent votingRoom.OnChange
-                printfn "event fired"
                 return Some(votingRoom.OptionVotes)
             | None -> return None }

@@ -95,20 +95,28 @@ module Client =
             optionsDiv
             submitButton ]
     
+    let makeTable (rows: string list list) =
+        Table
+           [for i in 0 .. rows.Length - 1 ->
+                let col = rows.[i]
+                TR
+                   [for j in 0 .. col.Length - 1 ->
+                        let tag = if i = 0 || j = 0 then TH else TD
+                        tag [Text col.[j]]]]
+
+    
     let form_viewVote votingRoomName =
         let tableDiv = Div []
         
         let render (votingRoomData: Map<string, Map<Vote, int>>) =
-            let table =
-                Table [Attr.Class "table table-striped table-hover"]
-                 -< [ yield TR [ yield TD [ Text "" ]
-                                 for vote in Vote.values -> TD [ Text (Vote.toStrMap.[vote]) ] ]
-                      for (option, voteTallies) in Map.toList votingRoomData do
-                          yield TR [ yield TD [ Align "right" ]
-                                           -< [B [ Text option ] ]
-                                     for (vote, tally) in Map.toList voteTallies do
-                                         yield TD [ Align "center"]
-                                               -< [Text (string tally) ] ] ]
+            let voteResultData =
+                [ yield [ yield "Option"
+                          for vote in Vote.values -> Vote.toStrMap.[vote] ]
+                  for (option, voteTallies) in Map.toList votingRoomData do
+                      yield [ yield option
+                              for (vote, tally) in Map.toList voteTallies do
+                                     yield string tally ] ]
+            let table = makeTable voteResultData -< [Attr.Class "table table-striped table-hover table-bordered"]
             tableDiv.Clear ()
             tableDiv.Append table
 
