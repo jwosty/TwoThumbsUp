@@ -34,7 +34,6 @@ module Client =
                     isFirst <- false
                     result]
         html, (fun () ->
-            let name = radioButtonGroupName.Replace (" ", "\\ ")
             let selection = JQuery.Of(sprintf "input[name=\"%s\"]:checked" radioButtonGroupName).Val() :?> string
             data |> List.find (fun (value, radioButtonName) -> selection = radioButtonName) |> fst)
 
@@ -87,15 +86,21 @@ module Client =
         let optionsDiv = Div []
         let submitButton = Button [ Attr.Class "btn btn-default"; Text "Cast vote" ]
 
-        let data = votingRoom.OptionVotes |> Map.map (fun optionName optionVote ->
-            // make a radio group for each option that exists
-            let radioGroup, getSelection = makeRadioGroup optionName (Map.toList Vote.toStrMap |> List.rev)
-            let element =
-                Div [Attr.Class "row"]
-                -< [Div [Attr.Class "col-xs-5"; Text optionName]
-                    -< [radioGroup]]
-            optionsDiv.Append element
-            getSelection)
+        let data =
+            // Used to create a unique name for each radio group. The name itself doesn't matter to anything except the
+            // internals of makeRadioGroup
+            let mutable i = 0
+            votingRoom.OptionVotes |> Map.map (fun optionName optionVote ->
+                // make a radio group for each option that exists
+                printfn "%s" optionName
+                let radioGroup, getSelection = makeRadioGroup ("option" + string i) (Map.toList Vote.toStrMap |> List.rev)
+                let element =
+                    Div [Attr.Class "row"]
+                    -< [Div [Attr.Class "col-xs-5"; Text optionName]
+                        -< [radioGroup]]
+                optionsDiv.Append element
+                i <- i + 1
+                getSelection)
         
         submitButton |> OnClick (fun x e ->
             async {
