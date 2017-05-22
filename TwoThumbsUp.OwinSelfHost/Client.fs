@@ -49,17 +49,18 @@ module Client =
                         tag (Text str :: attributes) ]]
     
     let form_createVote (defaultVotingRoomName: string) =
-        let mutable inputs = []
+        let mutable optionInputs = []
+        let optionInputsDiv = Div []
 
         let addNewInput () =
             let newInput =
                 Input [Attr.Class "optionInput"]
                    -< [Attr.Type "text"; Attr.Class "form-control"
-                       Attr.Name ("option" + string inputs.Length)
+                       Attr.Name ("option" + string optionInputs.Length)
                        Attr.AutoComplete "off" ]
-            (Div [Attr.Class "row"] -< [Div [Attr.Class "col-xs-5"] -< [newInput]]).AppendTo "option-inputs"
-            (Br []).AppendTo "option-inputs"
-            inputs <- newInput :: inputs
+            optionInputsDiv.Append (Div [Attr.Class "row"] -< [Div [Attr.Class "col-xs-5"] -< [newInput]])
+            optionInputsDiv.Append (Br [])
+            optionInputs <- newInput :: optionInputs
 
         JQuery("#add-option") |> on "click" (fun x e ->
             addNewInput ()) |> ignore
@@ -68,7 +69,7 @@ module Client =
             async {
                 let votingSessionName = JQuery("#input-url").Prop("value")
                 let! result =
-                    inputs |> List.map (fun x -> x.Value) |> List.rev
+                    optionInputs |> List.map (fun x -> x.Value) |> List.rev
                     |> AppState.Api.tryCreateVotingRoom votingSessionName
                 match result with
                 | AppState.Api.Success ->
@@ -77,10 +78,10 @@ module Client =
                 | AppState.Api.NameTaken -> setResultInfo "Name already taken"
                 | AppState.Api.InvalidOptions -> setResultInfo "At least one option must be added"
                 | AppState.Api.InvalidName -> setResultInfo "Voting room name cannot be empty" }
-            |> Async.Start ) |> ignore
+            |> Async.Start) |> ignore
 
         addNewInput ()
-        Div []
+        optionInputsDiv
     
     let form_submitVote votingRoomName (votingRoom: VotingRoomState) =
         let optionsDiv = Div []
