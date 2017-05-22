@@ -95,14 +95,15 @@ module Client =
             optionsDiv
             submitButton ]
     
-    let makeTable (rows: string list list) =
+    let makeTable (rows: _ list list) =
         Table
            [for i in 0 .. rows.Length - 1 ->
                 let col = rows.[i]
                 TR
                    [for j in 0 .. col.Length - 1 ->
                         let tag = if i = 0 || j = 0 then TH else TD
-                        tag [Text col.[j]]]]
+                        let str, attributes = col.[j]
+                        tag (Text str :: attributes) ]]
 
     
     let form_viewVote votingRoomName =
@@ -110,13 +111,16 @@ module Client =
         
         let render (votingRoomData: Map<string, Map<Vote, int>>) =
             let voteResultData =
-                [ yield [ yield "Option"
-                          for vote in Vote.values -> Vote.toStrMap.[vote] ]
-                  for (option, voteTallies) in Map.toList votingRoomData do
-                      yield [ yield option
-                              for (vote, tally) in Map.toList voteTallies do
-                                     yield string tally ] ]
-            let table = makeTable voteResultData -< [Attr.Class "table table-striped table-hover table-bordered"]
+              [ yield [ yield "Option", []
+                        for vote in Vote.values -> Vote.toStrMap.[vote], [] ]
+                for (option, voteTallies) in Map.toList votingRoomData do
+                    let hasVeto = voteTallies |> Map.exists (fun vote tally -> vote = TwoThumbsDown && tally > 0 )
+                    // TODO: apply this to the <tr> instead of each cell
+                    let attr = if hasVeto then [Attr.Class "danger"] else []
+                    yield [ yield option, attr
+                            for (vote, tally) in Map.toList voteTallies do
+                                yield string tally, attr]]
+            let table = makeTable voteResultData -< [Attr.Class "table table-bordered"]
             tableDiv.Clear ()
             tableDiv.Append table
 
