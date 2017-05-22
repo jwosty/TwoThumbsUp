@@ -32,9 +32,20 @@ module Client =
                                 if isFirst then yield Checked "" ]]
                          -< [Span [Text radioButtonName]]]]
         html, (fun () ->
-            let selection = JQuery.Of(sprintf "input[name=%s]:checked" radioButtonGroupName).Val() :?> string
+            let name = radioButtonGroupName.Replace (" ", "\\ ")
+            let selection = JQuery.Of(sprintf "input[name=\"%s\"]:checked" radioButtonGroupName).Val() :?> string
             data |> List.find (fun (value, radioButtonName) -> selection = radioButtonName) |> fst)
 
+    let makeTable (rows: _ list list) =
+        Table
+           [for i in 0 .. rows.Length - 1 ->
+                let col = rows.[i]
+                TR
+                   [for j in 0 .. col.Length - 1 ->
+                        let tag = if i = 0 || j = 0 then TH else TD
+                        let str, attributes = col.[j]
+                        tag (Text str :: attributes) ]]
+    
     let form_createVote (defaultVotingRoomName: string) =
         let mutable inputs = []
 
@@ -95,27 +106,17 @@ module Client =
             optionsDiv
             submitButton ]
     
-    let makeTable (rows: _ list list) =
-        Table
-           [for i in 0 .. rows.Length - 1 ->
-                let col = rows.[i]
-                TR
-                   [for j in 0 .. col.Length - 1 ->
-                        let tag = if i = 0 || j = 0 then TH else TD
-                        let str, attributes = col.[j]
-                        tag (Text str :: attributes) ]]
-
-    
     let form_viewVote votingRoomName =
         let tableDiv = Div []
         
         let render (votingRoomData: Map<string, Map<Vote, int>>) =
+            // Note: this rebuilds the whole vote table (not a problem -- yet)
             let voteResultData =
               [ yield [ yield "Option", []
                         for vote in Vote.values -> Vote.toStrMap.[vote], [] ]
                 for (option, voteTallies) in Map.toList votingRoomData do
                     let hasVeto = voteTallies |> Map.exists (fun vote tally -> vote = TwoThumbsDown && tally > 0 )
-                    // TODO: apply this to the <tr> instead of each cell
+                    // TODO: apply this to the <tr> tag instead of every individual cell
                     let attr = if hasVeto then [Attr.Class "danger"] else []
                     yield [ yield option, attr
                             for (vote, tally) in Map.toList voteTallies do
@@ -124,6 +125,7 @@ module Client =
             tableDiv.Clear ()
             tableDiv.Append table
 
+        // Initial update
         async {
             let! votingRoomData = AppState.Api.tryGetVotingRoomData votingRoomName
             match votingRoomData with
@@ -131,6 +133,7 @@ module Client =
             | None -> setResultInfo "Vote does not exist"
         } |> Async.Start
 
+        // Start an event loop to listen for incoming votes
         async {
             let mutable voteExists = true
             while voteExists do
