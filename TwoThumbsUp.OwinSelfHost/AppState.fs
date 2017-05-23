@@ -34,11 +34,13 @@ module Vote =
 [<JavaScript>]
 type VotingRoomState = { optionVotes: Map<string, Map<Vote, int>> }
 
+[<JavaScript>]
 type VotingRoomMessage =
-    | AddOption of optionName: string
-    | RemoveOption of optionName: string
-    | AddVote of optionName:string * vote:Vote * count:int
-    | Retrieve of AsyncReplyChannel<VotingRoomState>
+    | AddOption of string
+    | AddOptions of string list
+    | RemoveOption of string
+    | SubmitVote of Map<string, Vote>
+    | RetrieveState of AsyncReplyChannel<VotingRoomState>
 
 type VotingRoomAgent() =
     let initialTally = Vote.values |> List.map (fun voteKind -> voteKind, 0) |> Map.ofList
@@ -51,18 +53,23 @@ type VotingRoomAgent() =
                 match message with
                 | AddOption optionName ->
                     { state with optionVotes = Map.add optionName initialTally state.optionVotes }
+                | AddOptions optionNames ->
+                    { state with
+                        optionVotes =
+                            optionNames |> List.fold (fun optionVotes optionName ->
+                                Map.add optionName initialTally optionVotes) state.optionVotes}
                 | RemoveOption optionName ->
                     { state with
                         optionVotes = state.optionVotes |> Map.filter (fun optionName' tallies ->
                             optionName' = optionName) }
-                | AddVote (optionName, voteKind, count) ->
-                    let optionVotes = state.optionVotes |> Map.map (fun optionName' tallies ->
-                        if optionName' = optionName then
-                            tallies |> Map.map (fun voteKind' tally ->
-                            if voteKind = voteKind' then tally + count else tally)
-                        else tallies)
+                //| AddVote (optionName, voteKind, count) ->
+                | SubmitVote votes ->
+                    let optionVotes =
+                        state.optionVotes |> Map.map (fun option votesInfo ->
+                            votesInfo |> Map.map (fun vote tally ->
+                                if votes.[option] = vote then tally + 1 else tally))
                     { state with optionVotes = optionVotes }
-                | Retrieve replyChannel ->
+                | RetrieveState replyChannel ->
                     replyChannel.Reply state
                     state
             
@@ -72,10 +79,40 @@ type VotingRoomAgent() =
     member this.Post message = agent.Post message
     member this.PostAndReply f = agent.PostAndAsyncReply f
 
+module AppState =
+    // TODO: Look into wrapping the whole app state in an agent. This would make message passing to the individual
+    // voting rooms a little tricky, so this is good enough for now -- better than before
+    let private _lock = new Object()
+    let private votingRooms = new Dictionary<string, VotingRoomAgent>()
 
-
-        
-
+    let tryGetVotingRoomAgent votingRoomName = lock _lock (fun () ->
+        Dictionary.tryGetValue votingRoomName votingRooms)
+    
+    let createVotingRoom votingRoomName = lock _lock (fun () ->
+        if not (votingRooms.ContainsKey votingRoomName) then
+            votingRooms.[votingRoomName] <- new VotingRoomAgent())
+    
+    let destroyVotingRoom votingRoomName = lock _lock (fun () ->
+        votingRooms.Remove votingRoomName)
+    
+    let postMessage votingRoomName message =
+        tryGetVotingRoomAgent votingRoomName |> Option.iter (fun votingRoom -> votingRoom.Post message)
+    
+    let postMessageAndReply votingRoomName message = async {
+        match tryGetVotingRoomAgent votingRoomName with
+        | Some votingRoom ->
+            let! result = votingRoom.PostAndReply message
+            return Some(result)
+        | None -> return None }
+    
+    module Api =
+        [<Rpc>]
+        let createVotingRoom votingRoomName = createVotingRoom votingRoomName
+        [<Rpc>]
+        let postMessage votingRoomName message = async { postMessage votingRoomName message }
+        [<Rpc>]
+        let tryRetrieveVotingRoomState votingRoomName = postMessageAndReply votingRoomName RetrieveState
+    
 //[<JavaScript>]
 ///// NOTE: Don't try to RPC this whole structure over the wire -- Event is making deserialization fail
 //type VotingRoomState(optionVotes: Map<string, Map<Vote, int>>) =

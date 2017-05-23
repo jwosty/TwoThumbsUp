@@ -27,14 +27,16 @@ module Site =
         Content.WithTemplate Templating.TemplateCreateVote
             (defaultVotingRoomName, [Div [ClientSide <@ Client.form_createVote defaultVotingRoomName @> ]])
     
-    let VotePage votingRoomName =
-        match AppState.Api.tryGetVotingRoom votingRoomName with
+    let VotePage votingRoomName = async {
+        let! votingRoom = AppState.postMessageAndReply votingRoomName RetrieveState
+        match votingRoom with
         | Some(votingRoom) ->
             // WebSharper templating automatically performs escaping here, so it's safe
             // to just stitch strings together in this case
-            Content.WithTemplate Templating.TemplateSubmitVote
-                ("Voting: " + votingRoomName, [Div [ClientSide <@ Client.form_submitVote votingRoomName votingRoom @>]])
-        | None -> IndexPage votingRoomName
+            return! Content.WithTemplate Templating.TemplateSubmitVote
+                        ("Voting: " + votingRoomName,
+                        [Div [ClientSide <@ Client.form_submitVote votingRoomName votingRoom @>]])
+        | None -> return! IndexPage votingRoomName }
 
     let ViewVotePage votingRoomName =
         Content.WithTemplate Templating.TemplateSubmitVote

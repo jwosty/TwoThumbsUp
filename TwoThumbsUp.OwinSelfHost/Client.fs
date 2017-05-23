@@ -64,20 +64,23 @@ module Client =
         JQuery("#add-option") |> on "click" (fun x e ->
             addNewInput ()) |> ignore
         
-        JQuery("#submit-vote-session") |> on "click" (fun x e ->
+        JQuery("#create-vote-room") |> on "click" (fun x e ->
+            let votingRoomName = JQuery("#input-url").Prop("value")
+                //|> AppState.Api.tryCreateVotingRoom votingSessionName
+            AppState.Api.createVotingRoom votingRoomName
             async {
-                let votingSessionName = JQuery("#input-url").Prop("value")
-                let! result =
-                    optionInputs |> List.map (fun x -> x.Value) |> List.rev
-                    |> AppState.Api.tryCreateVotingRoom votingSessionName
-                match result with
-                | AppState.Api.Success ->
-                    setResultInfo ""
-                    JS.Window.Location.Pathname <- "/vote/" + JS.EncodeURIComponent votingSessionName
-                | AppState.Api.NameTaken -> setResultInfo "Name already taken"
-                | AppState.Api.InvalidOptions -> setResultInfo "At least one option must be added"
-                | AppState.Api.InvalidName -> setResultInfo "Voting room name cannot be empty" }
+                do! optionInputs |> List.rev |> List.map (fun x -> x.Value)
+                    |> AddOptions |> AppState.Api.postMessage votingRoomName
+                JS.Window.Location.Pathname <- "/vote/" + JS.EncodeURIComponent votingRoomName }
             |> Async.Start) |> ignore
+
+            //match result with
+            //| AppState.Api.Success ->
+            //    setResultInfo ""
+            //    JS.Window.Location.Pathname <- "/vote/" + JS.EncodeURIComponent votingSessionName
+            //| AppState.Api.NameTaken -> setResultInfo "Name already taken"
+            //| AppState.Api.InvalidOptions -> setResultInfo "At least one option must be added"
+            //| AppState.Api.InvalidName -> setResultInfo "Voting room name cannot be empty" }
 
         addNewInput ()
         optionInputsDiv
@@ -86,11 +89,14 @@ module Client =
         let optionsDiv = Div []
         let submitButton = Button [ Attr.Class "btn btn-default"; Text "Cast vote" ]
 
+        for kv in votingRoom.optionVotes do
+            printfn "%s" kv.Key
+
         let data =
             // Used to create a unique name for each radio group. The name itself doesn't matter to anything except the
             // internals of makeRadioGroup
             let mutable i = 0
-            votingRoom.OptionVotes |> Map.map (fun optionName optionVote ->
+            votingRoom.optionVotes |> Map.map (fun optionName optionVote ->
                 // make a radio group for each option that exists
                 let radioGroup, getSelection = makeRadioGroup ("option" + string i) (Map.toList Vote.toStrMap |> List.rev)
                 let element =
@@ -102,11 +108,8 @@ module Client =
                 getSelection)
         
         submitButton |> OnClick (fun x e ->
-            async {
-                let! success =
-                    data |> Map.map (fun name getSelection -> getSelection ())
-                    |> AppState.Api.submitVote votingRoomName
-                setResultInfo ("success: " + string success) }
+            data |> Map.map (fun name getSelection -> getSelection ())
+            |> SubmitVote |> AppState.Api.postMessage votingRoomName
             |> Async.Start)
 
         Div [
@@ -116,13 +119,13 @@ module Client =
     let form_viewVote votingRoomName =
         let tableDiv = Div []
         
-        let render (votingRoomData: Map<string, Map<Vote, int>>) =
+        let render votingRoom =
             // Note: this rebuilds the whole vote table (not a problem -- yet)
             let voteResultData : (Pagelet list * (string * Pagelet list) list) list =
               [ yield [],
                       [ yield "Option", []
                         for vote in Vote.values -> Vote.toStrMap.[vote], [] ]
-                for (option, voteTallies) in Map.toList votingRoomData do
+                for (option, voteTallies) in Map.toList votingRoom.optionVotes do
                     let hasVeto = voteTallies |> Map.exists (fun vote tally -> vote = TwoThumbsDown && tally > 0 )
                     yield [if hasVeto then yield Attr.Class "danger"],
                           [ yield option, []
@@ -134,22 +137,22 @@ module Client =
 
         // Initial update
         async {
-            let! votingRoomData = AppState.Api.tryGetVotingRoomData votingRoomName
+            let! votingRoomData = AppState.Api.tryRetrieveVotingRoomState votingRoomName
             match votingRoomData with
             | Some(votingRoomData) -> render votingRoomData
             | None -> setResultInfo "Vote does not exist"
         } |> Async.Start
         
         // Start an event loop to listen for incoming votes
-        async {
-            let mutable voteExists = true
-            while voteExists do
-                let! votingRoomData = AppState.Api.pollChange votingRoomName
-                match votingRoomData with
-                | Some(votingRoomData) ->
-                    render votingRoomData
-                | None ->
-                    setResultInfo "Vote does not exist"
-                    voteExists <- false }
-        |> Async.Start
+        //async {
+            //let mutable voteExists = true
+            //while voteExists do
+                //let! votingRoomData = AppState.Api.pollChange votingRoomName
+                //match votingRoomData with
+                //| Some(votingRoomData) ->
+                //    render votingRoomData
+                //| None ->
+                    //setResultInfo "Vote does not exist"
+                    //voteExists <- false }
+        //|> Async.Start
         tableDiv

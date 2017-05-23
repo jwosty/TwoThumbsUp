@@ -11,4 +11,12 @@ votingRoom.PostAndReply (fun replyChannel ->
 votingRoom.Post (AddOption "option a")
 votingRoom.Post (RemoveOption "option a")
 votingRoom.Post (AddVote ("option a", TwoThumbsDown, 2))
-votingRoom.PostAndReply Retrieve |> Async.RunSynchronously
+votingRoom.PostAndReply VotingRoomMessage.Retrieve |> Async.RunSynchronously
+
+
+let app = AppAgent()
+
+app.Post (CreateVotingRoom "wos-lunch")
+app.Post (CreateVotingRoom "foobar")
+
+app.PostAndReply AppMessage.Retrieve |> Async.RunSynchronously
