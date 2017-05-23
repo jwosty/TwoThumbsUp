@@ -108,15 +108,16 @@ module AppState =
     
     module Api =
         [<Rpc>]
-        let createVotingRoom votingRoomName =
+        let createVotingRoom votingRoomName = async {
             printfn "createVotingRoom: %A" votingRoomName
             createVotingRoom votingRoomName
-            printfn "createVotingRoom success"
+            printfn "createVotingRoom success" }
         [<Rpc>]
-        let postMessage votingRoomName message =
+        let postMessage votingRoomName message = async {
             printfn "postMessage: %A" message
             postMessage votingRoomName (JSSafe(message))
-            printfn "postMessage success"
+            printfn "postMessage success" }
+        
         [<Rpc>]
         let tryRetrieveVotingRoomState votingRoomName = async {
             printfn "tryRetrieveVotingRoomState: %s" votingRoomName
