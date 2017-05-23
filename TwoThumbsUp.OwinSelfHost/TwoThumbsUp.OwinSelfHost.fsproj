@@ -58,6 +58,7 @@
     <None Include="twothumbsup.css">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="Script.fsx" />
   </ItemGroup>
   <Import Project="$(FSharpTargetsPath)" />
   <Choose>

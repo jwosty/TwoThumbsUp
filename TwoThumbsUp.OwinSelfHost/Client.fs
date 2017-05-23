@@ -92,7 +92,6 @@ module Client =
             let mutable i = 0
             votingRoom.OptionVotes |> Map.map (fun optionName optionVote ->
                 // make a radio group for each option that exists
-                printfn "%s" optionName
                 let radioGroup, getSelection = makeRadioGroup ("option" + string i) (Map.toList Vote.toStrMap |> List.rev)
                 let element =
                     Div [Attr.Class "row"]

@@ -1,9 +1,16 @@
 ﻿namespace TwoThumbsUp
-open WebSharper
-open WebSharper.Sitelets
 open System
 open System.Collections.Generic
 open System.Web
+
+#if INTERACTIVE
+// Just so that we don't have to reference WebSharper when testing things in interactive
+type JavaScriptAttribute() = inherit Attribute()
+type RpcAttribute() = inherit Attribute()
+#else
+open WebSharper
+open WebSharper.Sitelets
+#endif
 
 module Dictionary =
     let tryGetValue key (dict: Dictionary<_,_>) =
@@ -12,10 +19,8 @@ module Dictionary =
         | false, _ -> None
 
 [<JavaScript>]
-type Vote =
-    | TwoThumbsDown | OneThumbDown | OneThumbUp | TwoThumbsUp
+type Vote = | TwoThumbsDown | OneThumbDown | OneThumbUp | TwoThumbsUp
 
-[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 [<JavaScript>]
 module Vote =
     let values = [ TwoThumbsDown; OneThumbDown; OneThumbUp; TwoThumbsUp ]
@@ -27,21 +32,67 @@ module Vote =
     let toStrMap = Map.toList fromStrMap |> List.map (fun (s, v) -> v, s) |> Map.ofList
 
 [<JavaScript>]
-/// NOTE: Don't try to RPC this whole structure over the wire -- Event is making deserialization fail
-type VotingRoomState(optionVotes: Map<string, Map<Vote, int>>) =
-    let onChange = new Event<VotingRoomState>()
-    let mutable optionVotes = optionVotes
+type VotingRoomState = { optionVotes: Map<string, Map<Vote, int>> }
 
-    member this.OnChange = onChange.Publish
+type VotingRoomMessage =
+    | AddOption of optionName: string
+    | RemoveOption of optionName: string
+    | AddVote of optionName:string * vote:Vote * count:int
+    | Retrieve of AsyncReplyChannel<VotingRoomState>
 
-    member this.OptionVotes
-        with get () = optionVotes
-        and set newValue =
-            optionVotes <- newValue
-            onChange.Trigger this
+type VotingRoomAgent() =
+    let initialTally = Vote.values |> List.map (fun voteKind -> voteKind, 0) |> Map.ofList
+    
+    let agent = MailboxProcessor.Start (fun inbox ->
+        let rec messageLoop state = async {
+            let! message = inbox.Receive ()
+            
+            let state =
+                match message with
+                | AddOption optionName ->
+                    { state with optionVotes = Map.add optionName initialTally state.optionVotes }
+                | RemoveOption optionName ->
+                    { state with
+                        optionVotes = state.optionVotes |> Map.filter (fun optionName' tallies ->
+                            optionName' = optionName) }
+                | AddVote (optionName, voteKind, count) ->
+                    let optionVotes = state.optionVotes |> Map.map (fun optionName' tallies ->
+                        if optionName' = optionName then
+                            tallies |> Map.map (fun voteKind' tally ->
+                            if voteKind = voteKind' then tally + count else tally)
+                        else tallies)
+                    { state with optionVotes = optionVotes }
+                | Retrieve replyChannel ->
+                    replyChannel.Reply state
+                    state
+            
+            return! messageLoop state }
+        messageLoop { optionVotes = Map.empty })
+    
+    member this.Post message = agent.Post message
+    member this.PostAndReply f = agent.PostAndAsyncReply f
 
-type AppState = { activeVotingRooms: Dictionary<string, VotingRoomState> }
 
+
+        
+
+//[<JavaScript>]
+///// NOTE: Don't try to RPC this whole structure over the wire -- Event is making deserialization fail
+//type VotingRoomState(optionVotes: Map<string, Map<Vote, int>>) =
+    //let onChange = new Event<VotingRoomState>()
+    //let mutable optionVotes = optionVotes
+
+    //member this.OnChange = onChange.Publish
+
+    //member this.OptionVotes
+        //with get () = optionVotes
+        //and set newValue =
+            //optionVotes <- newValue
+            //onChange.Trigger this
+
+//type AppState = { activeVotingRooms: Dictionary<string, VotingRoomState> }
+
+(*
 module AppState =
     // TODO: Agents?
     let _lock = new System.Object()
@@ -97,3 +148,5 @@ module AppState =
                 let! votingRoom = Async.AwaitEvent votingRoom.OnChange
                 return Some(votingRoom.OptionVotes)
             | None -> return None }
+
+*)
