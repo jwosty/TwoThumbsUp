@@ -89,9 +89,22 @@ module AppState =
     let tryGetVotingRoomAgent votingRoomName = lock _lock (fun () ->
         Dictionary.tryGetValue votingRoomName votingRooms)
     
-    let createVotingRoom votingRoomName = lock _lock (fun () ->
-        if not (votingRooms.ContainsKey votingRoomName) then
-            votingRooms.[votingRoomName] <- new VotingRoomAgent())
+    let votingRoomExists votingRoomName = lock _lock (fun () ->
+        votingRooms.ContainsKey votingRoomName)
+    
+    [<JavaScript>]
+    type TryCreateVotingRoomResult = | Success | InvalidName | NameTaken
+    
+    /// Creates a voting room, returning whether or it succeeded (will only fail if the room already exists)
+    let tryCreateVotingRoom votingRoomName =
+        if String.IsNullOrWhiteSpace votingRoomName then
+            InvalidName
+        else
+            lock _lock (fun () ->
+                if not (votingRooms.ContainsKey votingRoomName) then
+                    votingRooms.[votingRoomName] <- new VotingRoomAgent()
+                    Success
+                else NameTaken)
     
     let destroyVotingRoom votingRoomName = lock _lock (fun () ->
         votingRooms.Remove votingRoomName)
@@ -108,13 +121,13 @@ module AppState =
     
 module Api =
     [<Rpc>]
-    let createVotingRoom votingRoomName = async {
-        AppState.createVotingRoom votingRoomName }
+    let tryCreateVotingRoom votingRoomName = async {
+        return AppState.tryCreateVotingRoom votingRoomName }
 
     [<Rpc>]
     let postMessage votingRoomName message = async {
         AppState.postMessage votingRoomName (JSSafe(message)) }
     
     [<Rpc>]
-    let tryRetrieveVotingRoomState votingRoomName = async {
-        return AppState.postMessageAndReply votingRoomName RetrieveState }
+    let tryRetrieveVotingRoomState votingRoomName =
+        AppState.postMessageAndReply votingRoomName RetrieveState

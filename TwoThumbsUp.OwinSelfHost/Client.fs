@@ -67,10 +67,20 @@ module Client =
         JQuery("#create-vote-room") |> on "click" (fun x e ->
             let votingRoomName = JQuery("#input-url").Prop("value")
             async {
-                do! Api.createVotingRoom votingRoomName
-                let msg = optionInputs |> List.rev |> List.map (fun x -> x.Value) |> AddOptions
-                do! Api.postMessage votingRoomName msg
-                JS.Window.Location.Pathname <- "/vote/" + JS.EncodeURIComponent votingRoomName }
+                let options =
+                    optionInputs |> List.rev |> List.map (fun x -> x.Value)
+                    |> List.filter (not << System.String.IsNullOrWhiteSpace)
+                if options.Length = 0 then
+                    setResultInfo "No options added"
+                else
+                    let! result = Api.tryCreateVotingRoom votingRoomName
+                    match result with
+                    | AppState.NameTaken -> setResultInfo "Name already taken"
+                    | AppState.InvalidName -> setResultInfo "Name required"
+                    | AppState.Success ->
+                        let msg = optionInputs |> List.rev |> List.map (fun x -> x.Value) |> AddOptions
+                        do! Api.postMessage votingRoomName msg
+                        JS.Window.Location.Pathname <- "/vote/" + JS.EncodeURIComponent votingRoomName }
             |> Async.Start) |> ignore
 
             //match result with
@@ -136,10 +146,10 @@ module Client =
 
         // Initial update
         async {
-            let! votingRoomData = Api.tryRetrieveVotingRoomState votingRoomName
-            match votingRoomData with
-            | Some(votingRoomData) -> render votingRoomData
-            | None -> setResultInfo "Vote does not exist"
+            let! votingRoom = Api.tryRetrieveVotingRoomState votingRoomName
+            match votingRoom with
+            | Some(votingRoom) -> render votingRoom
+            | None -> setResultInfo "Voting room does not exist"
         } |> Async.Start
         
         // Start an event loop to listen for incoming votes
