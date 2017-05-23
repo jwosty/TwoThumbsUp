@@ -4,7 +4,6 @@ open System.Collections.Generic
 open System.Web
 
 #if INTERACTIVE
-// Just so that we don't have to reference WebSharper when testing things in interactive
 type JavaScriptAttribute() = inherit Attribute()
 type RpcAttribute() = inherit Attribute()
 #else
@@ -35,11 +34,14 @@ module Vote =
 type VotingRoomState = { optionVotes: Map<string, Map<Vote, int>> }
 
 [<JavaScript>]
-type VotingRoomMessage =
+type JSSafeVotingRoomMessage =
     | AddOption of string
     | AddOptions of string list
     | RemoveOption of string
     | SubmitVote of Map<string, Vote>
+
+type VotingRoomMessage =
+    | JSSafe of JSSafeVotingRoomMessage
     | RetrieveState of AsyncReplyChannel<VotingRoomState>
 
 type VotingRoomAgent() =
@@ -51,19 +53,18 @@ type VotingRoomAgent() =
             
             let state =
                 match message with
-                | AddOption optionName ->
+                | JSSafe(AddOption optionName) ->
                     { state with optionVotes = Map.add optionName initialTally state.optionVotes }
-                | AddOptions optionNames ->
+                | JSSafe(AddOptions optionNames) ->
                     { state with
                         optionVotes =
                             optionNames |> List.fold (fun optionVotes optionName ->
                                 Map.add optionName initialTally optionVotes) state.optionVotes}
-                | RemoveOption optionName ->
+                | JSSafe(RemoveOption optionName) ->
                     { state with
                         optionVotes = state.optionVotes |> Map.filter (fun optionName' tallies ->
                             optionName' = optionName) }
-                //| AddVote (optionName, voteKind, count) ->
-                | SubmitVote votes ->
+                | JSSafe(SubmitVote votes) ->
                     let optionVotes =
                         state.optionVotes |> Map.map (fun option votesInfo ->
                             votesInfo |> Map.map (fun vote tally ->
@@ -107,83 +108,18 @@ module AppState =
     
     module Api =
         [<Rpc>]
-        let createVotingRoom votingRoomName = createVotingRoom votingRoomName
+        let createVotingRoom votingRoomName =
+            printfn "createVotingRoom: %A" votingRoomName
+            createVotingRoom votingRoomName
+            printfn "createVotingRoom success"
         [<Rpc>]
-        let postMessage votingRoomName message = async { postMessage votingRoomName message }
+        let postMessage votingRoomName message =
+            printfn "postMessage: %A" message
+            postMessage votingRoomName (JSSafe(message))
+            printfn "postMessage success"
         [<Rpc>]
-        let tryRetrieveVotingRoomState votingRoomName = postMessageAndReply votingRoomName RetrieveState
-    
-//[<JavaScript>]
-///// NOTE: Don't try to RPC this whole structure over the wire -- Event is making deserialization fail
-//type VotingRoomState(optionVotes: Map<string, Map<Vote, int>>) =
-    //let onChange = new Event<VotingRoomState>()
-    //let mutable optionVotes = optionVotes
-
-    //member this.OnChange = onChange.Publish
-
-    //member this.OptionVotes
-        //with get () = optionVotes
-        //and set newValue =
-            //optionVotes <- newValue
-            //onChange.Trigger this
-
-//type AppState = { activeVotingRooms: Dictionary<string, VotingRoomState> }
-
-(*
-module AppState =
-    // TODO: Agents?
-    let _lock = new System.Object()
-    
-    let state = { activeVotingRooms = new Dictionary<_, _>() }
-
-    module Api =
-        let tryGetVotingRoom votingRoomName = lock _lock (fun () ->
-            Dictionary.tryGetValue votingRoomName state.activeVotingRooms)
-        
-        [<Rpc>]
-        let tryGetVotingRoomData votingRoomName = async {
-            return tryGetVotingRoom votingRoomName
-                   |> Option.map (fun x -> x.OptionVotes) }
-        
-        type TryCreateVotingRoomResult = | Success | InvalidName | InvalidOptions | NameTaken
-
-        [<Rpc>]
-        let tryCreateVotingRoom votingRoomName options = async {
-            if System.String.IsNullOrWhiteSpace votingRoomName then
-                return InvalidName
-            else
-                let options = List.filter (not << System.String.IsNullOrWhiteSpace) options
-                let optionVotes = options |> List.map (fun o -> o, Vote.values |> List.map (fun value -> value, 0) |> Map.ofList) |> Map.ofList
-                return lock _lock (fun () ->
-                    if state.activeVotingRooms.ContainsKey votingRoomName then
-                        NameTaken
-                    elif options.Length = 0 then
-                        InvalidOptions
-                    else
-                        state.activeVotingRooms.Add (votingRoomName, new VotingRoomState(optionVotes))
-                        Success) }
-        
-        [<Rpc>]
-        /// Adds a vote to a given session, returning whether or not the operation was successful
-        let submitVote votingRoomName (votes: Map<string, Vote>) = async {
-            return lock _lock (fun () ->
-                match Dictionary.tryGetValue votingRoomName state.activeVotingRooms with
-                | Some(votingRoom) ->
-                    let optionVotes =
-                        votingRoom.OptionVotes |> Map.map (fun option votesInfo ->
-                            votesInfo |> Map.map (fun vote voteCount ->
-                                if votes.[option] = vote then voteCount + 1
-                                else voteCount))
-                    state.activeVotingRooms.[votingRoomName].OptionVotes <- optionVotes
-                    true
-                | None -> false )}
-        
-        [<Rpc>]
-        let pollChange votingRoomName = async {
-            match tryGetVotingRoom votingRoomName with
-            | Some(votingRoom) ->
-                let! votingRoom = Async.AwaitEvent votingRoom.OnChange
-                return Some(votingRoom.OptionVotes)
-            | None -> return None }
-
-*)
+        let tryRetrieveVotingRoomState votingRoomName = async {
+            printfn "tryRetrieveVotingRoomState: %s" votingRoomName
+            let! result = postMessageAndReply votingRoomName RetrieveState
+            printfn "tryRetrieveVotingRoomState success: %A" result
+            return result }

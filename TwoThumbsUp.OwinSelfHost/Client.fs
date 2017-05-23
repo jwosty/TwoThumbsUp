@@ -68,11 +68,9 @@ module Client =
             let votingRoomName = JQuery("#input-url").Prop("value")
                 //|> AppState.Api.tryCreateVotingRoom votingSessionName
             AppState.Api.createVotingRoom votingRoomName
-            async {
-                do! optionInputs |> List.rev |> List.map (fun x -> x.Value)
-                    |> AddOptions |> AppState.Api.postMessage votingRoomName
-                JS.Window.Location.Pathname <- "/vote/" + JS.EncodeURIComponent votingRoomName }
-            |> Async.Start) |> ignore
+            optionInputs |> List.rev |> List.map (fun x -> x.Value)
+            |> AddOptions |> AppState.Api.postMessage votingRoomName
+            JS.Window.Location.Pathname <- "/vote/" + JS.EncodeURIComponent votingRoomName) |> ignore
 
             //match result with
             //| AppState.Api.Success ->
@@ -109,8 +107,7 @@ module Client =
         
         submitButton |> OnClick (fun x e ->
             data |> Map.map (fun name getSelection -> getSelection ())
-            |> SubmitVote |> AppState.Api.postMessage votingRoomName
-            |> Async.Start)
+            |> SubmitVote |> AppState.Api.postMessage votingRoomName)
 
         Div [
             optionsDiv
