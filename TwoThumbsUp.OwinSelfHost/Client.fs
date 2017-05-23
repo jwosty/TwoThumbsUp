@@ -67,9 +67,9 @@ module Client =
         JQuery("#create-vote-room") |> on "click" (fun x e ->
             let votingRoomName = JQuery("#input-url").Prop("value")
             async {
-                do! AppState.Api.createVotingRoom votingRoomName
+                do! Api.createVotingRoom votingRoomName
                 let msg = optionInputs |> List.rev |> List.map (fun x -> x.Value) |> AddOptions
-                do! AppState.Api.postMessage votingRoomName msg
+                do! Api.postMessage votingRoomName msg
                 JS.Window.Location.Pathname <- "/vote/" + JS.EncodeURIComponent votingRoomName }
             |> Async.Start) |> ignore
 
@@ -108,7 +108,7 @@ module Client =
         
         submitButton |> OnClick (fun x e ->
             data |> Map.map (fun name getSelection -> getSelection ())
-            |> SubmitVote |> AppState.Api.postMessage votingRoomName
+            |> SubmitVote |> Api.postMessage votingRoomName
             |> Async.Start)
 
         Div [
@@ -136,7 +136,7 @@ module Client =
 
         // Initial update
         async {
-            let! votingRoomData = AppState.Api.tryRetrieveVotingRoomState votingRoomName
+            let! votingRoomData = Api.tryRetrieveVotingRoomState votingRoomName
             match votingRoomData with
             | Some(votingRoomData) -> render votingRoomData
             | None -> setResultInfo "Vote does not exist"

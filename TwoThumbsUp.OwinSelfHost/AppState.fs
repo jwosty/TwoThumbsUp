@@ -106,21 +106,15 @@ module AppState =
             return Some(result)
         | None -> return None }
     
-    module Api =
-        [<Rpc>]
-        let createVotingRoom votingRoomName = async {
-            printfn "createVotingRoom: %A" votingRoomName
-            createVotingRoom votingRoomName
-            printfn "createVotingRoom success" }
-        [<Rpc>]
-        let postMessage votingRoomName message = async {
-            printfn "postMessage: %A" message
-            postMessage votingRoomName (JSSafe(message))
-            printfn "postMessage success" }
-        
-        [<Rpc>]
-        let tryRetrieveVotingRoomState votingRoomName = async {
-            printfn "tryRetrieveVotingRoomState: %s" votingRoomName
-            let! result = postMessageAndReply votingRoomName RetrieveState
-            printfn "tryRetrieveVotingRoomState success: %A" result
-            return result }
+module Api =
+    [<Rpc>]
+    let createVotingRoom votingRoomName = async {
+        AppState.createVotingRoom votingRoomName }
+
+    [<Rpc>]
+    let postMessage votingRoomName message = async {
+        AppState.postMessage votingRoomName (JSSafe(message)) }
+    
+    [<Rpc>]
+    let tryRetrieveVotingRoomState votingRoomName = async {
+        return AppState.postMessageAndReply votingRoomName RetrieveState }
