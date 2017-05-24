@@ -1,4 +1,4 @@
-﻿#load "AppState.fs"
+﻿#load "VotingRoom.fs"
 open TwoThumbsUp
 
 AppState.tryCreateVotingRoom "ice-cream"
