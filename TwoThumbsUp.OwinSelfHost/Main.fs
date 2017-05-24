@@ -6,6 +6,7 @@ open WebSharper.Sitelets
 
 type EndPoint =
     | [<EndPoint "GET /">] Index
+    | [<EndPoint "GET /manage">] ManageVote of escapedVotingRoomString: string
     | [<EndPoint "GET /vote">] Vote of escapedVotingRoomName: string
     | [<EndPoint "GET /view">] ViewVote of escapedVotingRoomName: string
 
@@ -19,13 +20,21 @@ module Templating =
 
     let TemplateSubmitVote =
         Content.Template<_>("~/SubmitVote.html")
-               .With("title", fun (title: string, _) -> title)
+               .With("title", fun (title: Element list, _) -> title)
                .With("client-scripts", fun (_, clientCode: Element list) -> clientCode)
 
 module Site =
+    let ahref href text = A [ HRef href ] -< [Text text]
+    
     let IndexPage defaultVotingRoomName =
         Content.WithTemplate Templating.TemplateCreateVote
             (defaultVotingRoomName, [Div [ClientSide <@ Client.form_createVote defaultVotingRoomName @> ]])
+    
+    let ManageVotePage votingRoomName =
+        let url = "/vote/" + votingRoomName
+        Content.WithTemplate Templating.TemplateSubmitVote
+          ([Text "Manage "; ahref url url],
+           [])
     
     let VotePage votingRoomName = async {
         let! votingRoom = AppState.postMessageAndReply votingRoomName RetrieveState
@@ -34,19 +43,21 @@ module Site =
             // WebSharper templating automatically performs escaping here, so it's safe
             // to just stitch strings together in this case
             return! Content.WithTemplate Templating.TemplateSubmitVote
-                        ("Voting: " + votingRoomName,
+                       ([Text ("Vote in /vote/" + votingRoomName)],
                         [Div [ClientSide <@ Client.form_submitVote votingRoomName votingRoom @>]])
         | None -> return! IndexPage votingRoomName }
 
     let ViewVotePage votingRoomName =
         Content.WithTemplate Templating.TemplateSubmitVote
-            ("Viewing: " + votingRoomName, [Div [ClientSide <@ Client.form_viewVote votingRoomName @>]])
+          ([Text ("Viewing: " + votingRoomName)],
+           [Div [ClientSide <@ Client.form_viewVote votingRoomName @>]])
 
     let Main : Sitelet<EndPoint> =
         Sitelet.Infer (fun context endPoint ->
             try
                 match endPoint with
                 | Index -> IndexPage ""
+                | ManageVote(escapedVotingRoomName) -> ManageVotePage (Uri.UnescapeDataString escapedVotingRoomName)
                 | Vote(escapedVotingRoomName) -> VotePage (Uri.UnescapeDataString escapedVotingRoomName)
                 | ViewVote(escapedVotingRoomName) -> ViewVotePage (Uri.UnescapeDataString escapedVotingRoomName)
             with e ->
