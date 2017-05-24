@@ -12,7 +12,7 @@ module Client =
     
     let setResultInfo message = JQuery.Of("#resultInfo").Text message |> ignore
 
-    let on (e: string) f (x: JQuery) = x.On(e, f)
+    let on (e: string) f (x: JQuery) = x.On(e, f) |> ignore
 
     let inputButton children = Input [Attr.Type "button"] -< children
 
@@ -62,7 +62,7 @@ module Client =
             optionInputs <- newInput :: optionInputs
 
         JQuery("#add-option") |> on "click" (fun x e ->
-            addNewInput ()) |> ignore
+            addNewInput ())
         
         JQuery("#create-vote-room") |> on "click" (fun x e ->
             let votingRoomName = JQuery("#input-url").Prop("value")
@@ -81,7 +81,9 @@ module Client =
                         let msg = optionInputs |> List.rev |> List.map (fun x -> x.Value) |> AddOptions
                         do! Api.postMessage votingRoomName msg
                         JS.Window.Location.Pathname <- "/vote/" + JS.EncodeURIComponent votingRoomName }
-            |> Async.Start) |> ignore
+            |> Async.Start
+            // Stop the form from submitting the normal way
+            e.PreventDefault ())
 
             //match result with
             //| AppState.Api.Success ->

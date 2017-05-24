@@ -41,27 +41,29 @@
                 <h2>Create a voting room</h2>
                 <div id="resultInfo"></div>
                 <div>
-                    <div class="row">
-                        <div class="col-xs-3">
-                            <div class="input-group">
-                                <span class="input-group-addon" id="url-addon">twothumbsup.com/vote/</span>
-                                <input type="text" class="form-control" id="input-url" aria-describedby="url-addon" autocomplete="off" autocapitalize="none" placeholder="url" value="${vote-name}"/>
+                    <form action="/404">
+                        <div class="row">
+                            <div class="col-xs-3">
+                                <div class="input-group">
+                                    <span class="input-group-addon" id="url-addon">twothumbsup.com/vote/</span>
+                                    <input autofocus ="text" class="form-control" id="input-url" aria-describedby="url-addon" autocomplete="off" autocapitalize="none" placeholder="url" value="${vote-name}"/>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <br/>
-                    <div class="row">
-                        <div class="col-xs-5">
-                            <input type="button" class="btn btn-default btn-xs" id="add-option" value="+" />
+                        <br/>
+                        <div class="row">
+                            <div class="col-xs-5">
+                                <input type="button" class="btn btn-default btn-xs" id="add-option" value="+" />
+                            </div>
                         </div>
-                    </div>
-                    <br/>
-                    <div data-replace="client-scripts"></div>
-                    <div class="row">
-                        <div class="col-xs-5">
-                            <input type="button" class="btn btn-default" id="create-vote-room" value="Create" />
+                        <br/>
+                        <div data-replace="client-scripts"></div>
+                        <div class="row">
+                            <div class="col-xs-5">
+                                <input type="submit" class="btn btn-default" id="create-vote-room" value="Create" />
+                            </div>
                         </div>
-                    </div>
+                    </form>
                 </div>
             </div>
         </div>
