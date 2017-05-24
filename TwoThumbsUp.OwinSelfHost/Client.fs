@@ -85,14 +85,6 @@ module Client =
             // Stop the form from submitting the normal way
             e.PreventDefault ())
 
-            //match result with
-            //| AppState.Api.Success ->
-            //    setResultInfo ""
-            //    JS.Window.Location.Pathname <- "/vote/" + JS.EncodeURIComponent votingSessionName
-            //| AppState.Api.NameTaken -> setResultInfo "Name already taken"
-            //| AppState.Api.InvalidOptions -> setResultInfo "At least one option must be added"
-            //| AppState.Api.InvalidName -> setResultInfo "Voting room name cannot be empty" }
-
         addNewInput ()
         optionInputsDiv
     
@@ -155,15 +147,14 @@ module Client =
         } |> Async.Start
         
         // Start an event loop to listen for incoming votes
-        //async {
-            //let mutable voteExists = true
-            //while voteExists do
-                //let! votingRoomData = AppState.Api.pollChange votingRoomName
-                //match votingRoomData with
-                //| Some(votingRoomData) ->
-                //    render votingRoomData
-                //| None ->
-                    //setResultInfo "Vote does not exist"
-                    //voteExists <- false }
-        //|> Async.Start
+        async {
+            let mutable voteExists = true
+            while voteExists do
+                let! votingRoom = Api.pollStateChange votingRoomName
+                match votingRoom with
+                | Some(votingRoom) -> render votingRoom
+                | None ->
+                    setResultInfo "Vote does not exist"
+                    voteExists <- false }
+        |> Async.Start
         tableDiv

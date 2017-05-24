@@ -47,38 +47,45 @@ type VotingRoomMessage =
 type VotingRoomAgent() =
     let initialTally = Vote.values |> List.map (fun voteKind -> voteKind, 0) |> Map.ofList
     
+    let onStateChanged = new Event<_>()
+    
     let agent = MailboxProcessor.Start (fun inbox ->
         let rec messageLoop state = async {
             let! message = inbox.Receive ()
             
-            let state =
+            let state' =
                 match message with
                 | JSSafe(AddOption optionName) ->
-                    { state with optionVotes = Map.add optionName initialTally state.optionVotes }
+                    Some({ state with optionVotes = Map.add optionName initialTally state.optionVotes })
                 | JSSafe(AddOptions optionNames) ->
-                    { state with
-                        optionVotes =
-                            optionNames |> List.fold (fun optionVotes optionName ->
-                                Map.add optionName initialTally optionVotes) state.optionVotes}
+                    let optionVotes =
+                        optionNames |> List.fold (fun optionVotes optionName ->
+                            Map.add optionName initialTally optionVotes) state.optionVotes
+                    Some ({ state with optionVotes = optionVotes })
                 | JSSafe(RemoveOption optionName) ->
-                    { state with
-                        optionVotes = state.optionVotes |> Map.filter (fun optionName' tallies ->
-                            optionName' = optionName) }
+                    let optionVotes =
+                        state.optionVotes |> Map.filter (fun optionName' tallies ->
+                        optionName' = optionName)
+                    Some({ state with optionVotes = optionVotes })
                 | JSSafe(SubmitVote votes) ->
                     let optionVotes =
                         state.optionVotes |> Map.map (fun option votesInfo ->
                             votesInfo |> Map.map (fun vote tally ->
                                 if votes.[option] = vote then tally + 1 else tally))
-                    { state with optionVotes = optionVotes }
+                    Some({ state with optionVotes = optionVotes })
                 | RetrieveState replyChannel ->
                     replyChannel.Reply state
-                    state
-            
-            return! messageLoop state }
+                    None
+            match state' with
+            | Some(state') ->
+                onStateChanged.Trigger state'
+                return! messageLoop state'
+            | None -> return! messageLoop state }
         messageLoop { optionVotes = Map.empty })
     
     member this.Post message = agent.Post message
     member this.PostAndReply f = agent.PostAndAsyncReply f
+    member this.OnStateChanged = onStateChanged.Publish
 
 module AppState =
     // TODO: Look into wrapping the whole app state in an agent. This would make message passing to the individual
@@ -131,3 +138,11 @@ module Api =
     [<Rpc>]
     let tryRetrieveVotingRoomState votingRoomName =
         AppState.postMessageAndReply votingRoomName RetrieveState
+    
+    [<Rpc>]
+    let pollStateChange votingRoomName = async {
+        match AppState.tryGetVotingRoomAgent votingRoomName with
+        | Some(agent) ->
+            let! state = Async.AwaitEvent agent.OnStateChanged
+            return Some(state)
+        | None -> return None }
