@@ -46,10 +46,38 @@ module VotingRoomTests =
         state |> Map.tryFind "option b" |> should not' (equal None)
     
     [<Test>]
-    let ``Posting a RemoveOption message should remove a message`` () =
+    let ``Posting RemoveOption should remove an option`` () =
         let agent = new VotingRoomAgent()
         agent.Post (JSSafe(AddOptions ["option a"; "option b"]))
         agent.Post (JSSafe(RemoveOption "option a"))
         let state = (retrieveState agent).optionVotes
         state |> Map.count |> should equal 1
         state |> Map.tryFind "option b" |> should equal None
+
+    [<Test>]
+    let ``Posting a SubmitVote should increase the appropriate vote tallies`` () =
+        let agent = new VotingRoomAgent()
+        agent.Post (JSSafe(AddOptions ["option a"; "option b"]))
+        let votes = Map.ofList ["option a", TwoThumbsUp; "option b", OneThumbDown]
+        agent.Post (JSSafe(SubmitVote votes))
+        let state = (retrieveState agent).optionVotes
+        let oa = Map.find "option a" state
+        let ob = Map.find "option b" state
+        
+        oa |> Map.find TwoThumbsUp |> should equal 1
+        oa |> Map.find OneThumbDown |> should equal 0
+        ob |> Map.find TwoThumbsUp |> should equal 0
+        ob |> Map.find OneThumbDown |> should equal 1
+    
+    [<Test>]
+    let ``Posting many SubmitVote s should increase the approprate vote tallies`` () =
+        let agent = new VotingRoomAgent()
+        agent.Post (JSSafe(AddOptions ["option a"]))
+        for vote in [OneThumbUp; OneThumbDown; OneThumbUp] do
+            agent.Post (JSSafe(SubmitVote(Map.ofList ["option a", vote])))
+        let oa = (retrieveState agent).optionVotes |> Map.find "option a"
+        
+        oa |> Map.find TwoThumbsUp |> should equal 0
+        oa |> Map.find OneThumbUp |> should equal 2
+        oa |> Map.find OneThumbDown |> should equal 1
+        oa |> Map.find TwoThumbsDown |> should equal 0
