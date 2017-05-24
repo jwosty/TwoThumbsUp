@@ -49,16 +49,16 @@
     <Compile Include="AppState.fs" />
     <Compile Include="Client.fs" />
     <Compile Include="Main.fs" />
+    <None Include="Script.fsx" />
+    <None Include="twothumbsup.css">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="CreateVote.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="SubmitVote.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="twothumbsup.css">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Script.fsx" />
   </ItemGroup>
   <Import Project="$(FSharpTargetsPath)" />
   <Choose>
