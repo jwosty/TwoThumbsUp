@@ -4,7 +4,7 @@ source https://api.nuget.org/v3/index.json
 framework >= net451
 
 nuget FSharp.Core 4.1.0.2 framework: >= net451
-nuget FsUnit.xUnit
+nuget FsUnit
 nuget Microsoft.AspNet.WebApi
 nuget Microsoft.AspNet.WebApi.Client
 nuget Microsoft.Owin

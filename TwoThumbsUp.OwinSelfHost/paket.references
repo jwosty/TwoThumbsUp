@@ -2,4 +2,4 @@ FSharp.Core
 System.ValueTuple
 WebSharper.Warp
 WebSharper.Html
-FsUnit.xUnit
+FsUnit
