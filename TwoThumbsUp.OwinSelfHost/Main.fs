@@ -70,14 +70,19 @@ open System.Net.Sockets
 module Main =
     [<EntryPoint>]
     let main args =
-        let localIp =
-            NetworkInterface.GetAllNetworkInterfaces ()
-            |> Seq.tryPick (fun netInterface ->
-                match netInterface.NetworkInterfaceType with
-                | NetworkInterfaceType.Wireless80211 | NetworkInterfaceType.Ethernet ->
-                    netInterface.GetIPProperties().UnicastAddresses
-                    |> Seq.tryPick (fun addrInfo ->
-                        if addrInfo.Address.AddressFamily = AddressFamily.InterNetwork then Some(string addrInfo.Address) else None)
-                | _ -> None)
-        let urls = List.choose id [localIp; Some "localhost"] |> List.map (fun host -> "http://" + host + ":8080")
+        let hosts =
+            if args.Length > 0 then
+                Array.toList args
+            else
+                let localIp =
+                    NetworkInterface.GetAllNetworkInterfaces ()
+                    |> Seq.tryPick (fun netInterface ->
+                        match netInterface.NetworkInterfaceType with
+                        | NetworkInterfaceType.Wireless80211 | NetworkInterfaceType.Ethernet ->
+                            netInterface.GetIPProperties().UnicastAddresses
+                            |> Seq.tryPick (fun addrInfo ->
+                                if addrInfo.Address.AddressFamily = AddressFamily.InterNetwork then Some(string addrInfo.Address) else None)
+                        | _ -> None)
+                List.choose id [localIp; Some "localhost"] |> List.map (fun host -> host + ":8080")
+        let urls = hosts |> List.map (fun host -> "http://" + host)
         WebSharper.Warp.RunAndWaitForInput (Site.Main, urls = urls, debug = true)
