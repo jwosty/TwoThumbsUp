@@ -27,9 +27,7 @@
                 <div class="collapse navbar-collapse" id="navbar-collapse-1">
                     <p class="navbar-text pull-right">Logged in as &lt;Username&gt;</p>
                     <ul class="nav navbar-nav">
-                        <li class="active"><a href="#">Home</a></li>
-                        <li><a href="#about">About</a></li>
-                        <li><a href="#contact">Contact</a></li>
+                        <li><a href="/">Home</a></li>
                     </ul>
                 </div>
             </div>
@@ -37,34 +35,32 @@
     </div>
     <div class="container">
         <div class="content">
-            <div class="row">
-                <h2>Create a voting room</h2>
-                <div id="resultInfo"></div>
-                <div>
-                    <form action="/404">
-                        <div class="row">
-                            <div class="col-xs-3">
-                                <div class="input-group">
-                                    <span class="input-group-addon" id="url-addon">twothumbsup.com/vote/</span>
-                                    <input autofocus ="text" class="form-control" id="input-url" aria-describedby="url-addon" autocomplete="off" autocapitalize="none" placeholder="url" value="${vote-name}"/>
-                                </div>
+            <h2>Create a voting room</h2>
+            <div id="resultInfo"></div>
+            <div>
+                <form action="/404">
+                    <div class="row">
+                        <div class="col-xs-3">
+                            <div class="input-group">
+                                <span class="input-group-addon" id="url-addon">twothumbsup.com/vote/</span>
+                                <input autofocus ="text" class="form-control" id="input-url" aria-describedby="url-addon" autocomplete="off" autocapitalize="none" placeholder="url" value="${vote-name}"/>
                             </div>
                         </div>
-                        <br/>
-                        <div class="row">
-                            <div class="col-xs-5">
-                                <input type="submit" class="btn btn-default btn-xs" id="add-option" value="+" />
-                            </div>
+                    </div>
+                    <br/>
+                    <div class="row">
+                        <div class="col-xs-5">
+                            <input type="submit" class="btn btn-default btn-xs" id="add-option" value="+" />
                         </div>
-                        <br/>
-                        <div data-replace="client-scripts"></div>
-                        <div class="row">
-                            <div class="col-xs-5">
-                                <input type="button" class="btn btn-default" id="create-vote-room" value="Create" />
-                            </div>
+                    </div>
+                    <br/>
+                    <div data-replace="client-scripts"></div>
+                    <div class="row">
+                        <div class="col-xs-5">
+                            <input type="button" class="btn btn-default" id="create-vote-room" value="Create" />
                         </div>
-                    </form>
-                </div>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

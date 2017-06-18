@@ -57,7 +57,7 @@ module Client =
                    -< [Attr.Type "text"; Attr.Class "form-control"
                        Attr.Name ("option" + string optionInputs.Length)
                        Attr.AutoComplete "off" ]
-            optionInputsDiv.Append (Div [Attr.Class "row"] -< [Div [Attr.Class "col-xs-5"] -< [newInput]])
+            optionInputsDiv.Append (Div [Attr.Class "row"] -< [Div [Attr.Class "col-sm-5"] -< [newInput]])
             optionInputsDiv.Append (Br [])
             optionInputs <- newInput :: optionInputs
 
