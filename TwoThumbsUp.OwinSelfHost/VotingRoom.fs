@@ -98,7 +98,7 @@ module AppState =
     
     let votingRoomExists votingRoomName = lock _lock (fun () ->
         votingRooms.ContainsKey votingRoomName)
-    
+
     [<JavaScript>]
     type TryCreateVotingRoomResult = | Success | InvalidName | NameTaken
     
@@ -113,7 +113,7 @@ module AppState =
                     Success
                 else NameTaken)
     
-    let destroyVotingRoom votingRoomName = lock _lock (fun () ->
+    let deleteVotingRoom votingRoomName = lock _lock (fun () ->
         votingRooms.Remove votingRoomName)
     
     let postMessage votingRoomName message =
@@ -127,22 +127,21 @@ module AppState =
         | None -> return None }
     
 module Api =
-    [<Rpc>]
-    let tryCreateVotingRoom votingRoomName = async {
+    let [<Rpc>] tryCreateVotingRoom votingRoomName = async {
         return AppState.tryCreateVotingRoom votingRoomName }
 
-    [<Rpc>]
-    let postMessage votingRoomName message = async {
+    let [<Rpc>] postMessage votingRoomName message = async {
         AppState.postMessage votingRoomName (JSSafe(message)) }
     
-    [<Rpc>]
-    let tryRetrieveVotingRoomState votingRoomName =
+    let [<Rpc>] tryRetrieveVotingRoomState votingRoomName =
         AppState.postMessageAndReply votingRoomName RetrieveState
     
-    [<Rpc>]
-    let pollStateChange votingRoomName = async {
+    let [<Rpc>] pollStateChange votingRoomName = async {
         match AppState.tryGetVotingRoomAgent votingRoomName with
         | Some(agent) ->
             let! state = Async.AwaitEvent agent.OnStateChanged
             return Some(state)
         | None -> return None }
+
+    let [<Rpc>] deleteVotingRoom votingRoomName = async {
+        return AppState.deleteVotingRoom votingRoomName }

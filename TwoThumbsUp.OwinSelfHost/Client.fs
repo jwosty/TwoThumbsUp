@@ -158,4 +158,16 @@ module Client =
                     setResultInfo "Vote does not exist"
                     voteExists <- false }
         |> Async.Start
-        tableDiv
+
+        Div [Class "row"]
+        -< [Div [Class "col-xs-12"]
+            -< [tableDiv]
+            Div [Class "col-xs-12"]
+            -< [A [HRef "/"; Class "btn btn-danger"; Text "Delete voting room"]
+                |>! OnClick (fun x e ->
+                    e.Event.PreventDefault ()
+                    Async.Start <| async {
+                        let! _ = Api.deleteVotingRoom votingRoomName
+                        JS.Window.Location.Href <- "/" })
+                ]
+            ]
