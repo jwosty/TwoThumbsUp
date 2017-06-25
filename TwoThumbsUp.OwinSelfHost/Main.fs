@@ -1,14 +1,9 @@
 ﻿namespace TwoThumbsUp
 open System
+open TwoThumbsUp.Routing
 open WebSharper.Html.Server
 open WebSharper
 open WebSharper.Sitelets
-
-type EndPoint =
-    | [<EndPoint "GET /">] Index
-    | [<EndPoint "GET /manage">] ManageVote of escapedVotingRoomString: string
-    | [<EndPoint "GET /vote">] Vote of escapedVotingRoomName: string
-    | [<EndPoint "GET /view">] ViewVote of escapedVotingRoomName: string
 
 module Templating =
     open System.Web
@@ -32,19 +27,32 @@ module Templating =
 module Site =
     let ahref href text = A [ HRef href ] -< [Text text]
 
-    let IndexPage defaultVotingRoomName =
+    let NotFoundPage endPoint =
+        Content.WithTemplate Templating.MainTemplate {
+            browserTitle = "Page not found - TwoThumbsUp"
+            title = "Page not found"
+            content =
+               [Span [Class "text-sub-heading"]
+                -< [Text "The requested URL "
+                    B [Text (link endPoint)]
+                    Text " does not exist."]
+                ] }
+
+    let CreateVotePage votingRoomName endPoint =
         Content.WithTemplate Templating.MainTemplate
           { browserTitle = "TwoThumbsUp - Create voting room"
             title = "Create a voting room"
-            content = [Div [ClientSide <@ Client.form_createVote defaultVotingRoomName @>]] }
+            content = [Div [ClientSide <@ Client.form_createVote votingRoomName @>]] }
     
-    let ManageVotePage votingRoomName =
+    let IndexPage = CreateVotePage ""
+
+    let ManageVotePage votingRoomName endPoint =
         let url = "/vote/" + votingRoomName
         Content.WithTemplate Templating.TemplateSubmitVote
           ([Text "Manage "; ahref url url],
            [])
     
-    let VotePage votingRoomName = async {
+    let VotePage votingRoomName endPoint = async {
         let! votingRoom = AppState.postMessageAndReply votingRoomName RetrieveState
         match votingRoom with
         | Some(votingRoom) ->
@@ -53,24 +61,33 @@ module Site =
                 Content.WithTemplate Templating.MainTemplate
                   { browserTitle = "Vote! - TwoThumbsUp"; title = "Vote in /vote/" + votingRoomName
                     content = [Div [ClientSide <@ Client.form_submitVote votingRoomName votingRoom @>]] }
-        | None -> return! IndexPage votingRoomName }
+        | None -> return! CreateVotePage votingRoomName endPoint }
 
-    let ViewVotePage votingRoomName =
+    let ViewVotePage votingRoomName endPoint =
         Content.WithTemplate Templating.TemplateSubmitVote
           ([Text ("Viewing: " + votingRoomName)],
            [Div [ClientSide <@ Client.form_viewVote votingRoomName @>]])
 
-    let Main : Sitelet<EndPoint> =
-        Sitelet.Infer (fun context endPoint ->
+    let Controller =
+        { Handle = fun action ->
             try
-                match endPoint with
-                | Index -> IndexPage ""
-                | ManageVote(escapedVotingRoomName) -> ManageVotePage (Uri.UnescapeDataString escapedVotingRoomName)
-                | Vote(escapedVotingRoomName) -> VotePage (Uri.UnescapeDataString escapedVotingRoomName)
-                | ViewVote(escapedVotingRoomName) -> ViewVotePage (Uri.UnescapeDataString escapedVotingRoomName)
+                let makePage =
+                    match action with
+                    | NotFound url -> NotFoundPage
+                    | Index -> IndexPage
+                    | Vote roomName -> VotePage roomName
+                    | ManageVote roomName -> ManageVotePage roomName
+                    | ViewVote roomName -> ViewVotePage roomName
+                
+                Content.FromContext (fun ctx -> makePage action)
+                |> Content.FromAsync
             with e ->
-                System.Console.Error.WriteLine ("Error while serving page:" + e.Message)
-                raise e)
+                printfn "500 internal server error: %A" (e.ToString ())
+                reraise () }
+    
+    let MainSitelet =
+      { Router = Router.New route (fun x -> Some(new Uri(link x, UriKind.Relative)))
+        Controller = Controller }
 
 open System.Net.NetworkInformation
 open System.Net.Sockets
@@ -93,4 +110,4 @@ module Main =
                         | _ -> None)
                 List.choose id [localIp; Some "localhost"] |> List.map (fun host -> host + ":8080")
         let urls = hosts |> List.map (fun host -> "http://" + host)
-        WebSharper.Warp.RunAndWaitForInput (Site.Main, urls = urls, debug = true)
+        WebSharper.Warp.RunAndWaitForInput (Site.MainSitelet, urls = urls, debug = true)

@@ -46,6 +46,7 @@
   <ItemGroup>
     <None Include="paket.references" />
     <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="Routing.fs" />
     <Compile Include="VotingRoom.fs" />
     <Compile Include="VotingRoomTests.fs" />
     <Compile Include="Client.fs" />
