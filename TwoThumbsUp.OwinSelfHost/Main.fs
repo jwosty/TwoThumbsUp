@@ -48,6 +48,12 @@ module Site =
             title = [Text "Manage "; ahref url url]
             content = [] }
     
+    let BrainstormPage votingRoomName endPoint =
+        Content.WithTemplate Templating.MainTemplate
+          { browserTitle = "Brainstorm - TwoThumbsUp"
+            title = [Text (sprintf "Brainstorm %s" votingRoomName)]
+            content = [Div [ClientSide <@ Client.form_brainstorm votingRoomName @>]]}
+
     let VotePage votingRoomName endPoint = async {
         let! votingRoom = AppState.postMessageAndReply votingRoomName RetrieveState
         match votingRoom with
@@ -73,6 +79,7 @@ module Site =
                     match action with
                     | NotFound url -> NotFoundPage
                     | Index -> IndexPage
+                    | Brainstorm roomName -> BrainstormPage roomName
                     | Vote roomName -> VotePage roomName
                     | ManageVote roomName -> ManageVotePage roomName
                     | ViewVote roomName -> ViewVotePage roomName

@@ -109,6 +109,16 @@ module Client =
                     ]
                 ]
             ]
+
+    let form_brainstorm votingRoomName =
+        Div
+           [Div [Class "row"]
+            -< [Div [Class "col-sm-6 col-xs-12"]
+                -< [Input [Type "text"; Class "form-control"; PlaceHolder "Another good idea"]]
+                Div [Class "col-xs-6"]
+                -< [Button [Type "submit"; Class "btn btn-default"; Text "Add"]]
+                ]
+            ]
     
     let form_submitVote votingRoomName votingRoom =
         match votingRoom with
