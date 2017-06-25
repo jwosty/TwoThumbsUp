@@ -24,9 +24,9 @@ module Client =
                 for (value, radioButtonName) in data ->
                     let result =
                         Div [Attr.Class "radio"]
-                        -< [Label [
-                                Input [
-                                    yield Type "radio"
+                        -< [Label
+                               [Input
+                                   [yield Type "radio"
                                     yield Name radioButtonGroupName
                                     yield Value radioButtonName
                                     if isFirst then yield Checked "" ]]
@@ -74,7 +74,7 @@ module Client =
                     | AppState.NameTaken -> setResultInfo "Name already taken"
                     | AppState.InvalidName -> setResultInfo "Name required"
                     | AppState.Success ->
-                        do! Api.postMessage votingRoomName (AddOptions options)
+                        do! Api.addOptions votingRoomName options
                         JS.Window.Location.Pathname <- "/vote/" + JS.EncodeURIComponent votingRoomName }
 
         let input_url =
@@ -134,7 +134,7 @@ module Client =
         
         submitButton |> OnClick (fun x e ->
             data |> Map.map (fun name getSelection -> getSelection ())
-            |> SubmitVote |> Api.postMessage votingRoomName
+            |> Api.submitVote votingRoomName
             |> Async.Start)
 
         Div [

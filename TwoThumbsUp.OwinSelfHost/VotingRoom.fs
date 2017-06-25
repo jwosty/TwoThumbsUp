@@ -25,23 +25,19 @@ module Vote =
     let values = [ TwoThumbsDown; OneThumbDown; OneThumbUp; TwoThumbsUp ]
     
     let fromStrMap =
-        Map.ofList [ "Two thumbs down", TwoThumbsDown; "One thumb down", OneThumbDown
-                     "One thumb up", OneThumbUp; "Two thumbs up", TwoThumbsUp ]
+        Map.ofList ["Two thumbs down", TwoThumbsDown; "One thumb down", OneThumbDown
+                    "One thumb up", OneThumbUp; "Two thumbs up", TwoThumbsUp]
     
     let toStrMap = Map.toList fromStrMap |> List.map (fun (s, v) -> v, s) |> Map.ofList
 
-[<JavaScript>]
 type VotingRoomState = { optionVotes: Map<string, Map<Vote, int>> }
 
 [<JavaScript>]
-type JSSafeVotingRoomMessage =
+type VotingRoomMessage =
     | AddOption of string
     | AddOptions of string list
     | RemoveOption of string
     | SubmitVote of Map<string, Vote>
-
-type VotingRoomMessage =
-    | JSSafe of JSSafeVotingRoomMessage
     | RetrieveState of AsyncReplyChannel<VotingRoomState>
 
 type VotingRoomAgent() =
@@ -55,19 +51,19 @@ type VotingRoomAgent() =
             
             let state' =
                 match message with
-                | JSSafe(AddOption optionName) ->
+                | AddOption optionName ->
                     Some({ state with optionVotes = Map.add optionName initialTally state.optionVotes })
-                | JSSafe(AddOptions optionNames) ->
+                | AddOptions optionNames ->
                     let optionVotes =
                         optionNames |> List.fold (fun optionVotes optionName ->
                             Map.add optionName initialTally optionVotes) state.optionVotes
                     Some ({ state with optionVotes = optionVotes })
-                | JSSafe(RemoveOption optionName) ->
+                | RemoveOption optionName ->
                     let optionVotes =
                         state.optionVotes |> Map.filter (fun optionName' tallies ->
                         optionName' = optionName)
                     Some({ state with optionVotes = optionVotes })
-                | JSSafe(SubmitVote votes) ->
+                | SubmitVote votes ->
                     let optionVotes =
                         state.optionVotes |> Map.map (fun option votesInfo ->
                             votesInfo |> Map.map (fun vote tally ->
@@ -129,10 +125,16 @@ module AppState =
 module Api =
     let [<Rpc>] tryCreateVotingRoom votingRoomName = async {
         return AppState.tryCreateVotingRoom votingRoomName }
-
-    let [<Rpc>] postMessage votingRoomName message = async {
-        AppState.postMessage votingRoomName (JSSafe(message)) }
     
+    let [<Rpc>] addOption votingRoomName option = async {
+        AppState.postMessage votingRoomName (AddOption option)}
+
+    let [<Rpc>] addOptions votingRoomName options = async {
+        AppState.postMessage votingRoomName (AddOptions options) }
+
+    let [<Rpc>] submitVote votingRoomName votes = async {
+        AppState.postMessage votingRoomName (SubmitVote votes)}
+
     let [<Rpc>] tryRetrieveVotingRoomState votingRoomName =
         AppState.postMessageAndReply votingRoomName RetrieveState
     
