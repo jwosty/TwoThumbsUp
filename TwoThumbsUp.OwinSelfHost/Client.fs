@@ -61,13 +61,7 @@ module Client =
             optionInputsDiv.Append (Br [])
             optionInputs <- newInput :: optionInputs
 
-        JQuery("#add-option") |> on "click" (fun x e ->
-            printfn "got here"
-            e.PreventDefault ()
-            addNewInput ())
-        
-        JQuery("#create-vote-room") |> on "click" (fun x e ->
-            let votingRoomName = JQuery("#input-url").Prop("value")
+        let createVotingRoom votingRoomName =
             async {
                 let options =
                     optionInputs |> List.rev |> List.map (fun x -> x.Value)
@@ -80,15 +74,41 @@ module Client =
                     | AppState.NameTaken -> setResultInfo "Name already taken"
                     | AppState.InvalidName -> setResultInfo "Name required"
                     | AppState.Success ->
-                        let msg = optionInputs |> List.rev |> List.map (fun x -> x.Value) |> AddOptions
-                        do! Api.postMessage votingRoomName msg
+                        do! Api.postMessage votingRoomName (AddOptions options)
                         JS.Window.Location.Pathname <- "/vote/" + JS.EncodeURIComponent votingRoomName }
-            |> Async.Start
-            // Stop the form from submitting the normal way
-            e.PreventDefault ())
+
+        let input_url =
+            Input [Type "text"; Class "form-control"; Id "input-url"; PlaceHolder "url"; Value defaultVotingRoomName;
+                   AutoFocus "autofocus"; AutoComplete "off"; NewAttr "auto-capitalize" "none"]
 
         addNewInput ()
-        optionInputsDiv
+        Form [Attr.Action "/404"]
+        -< [Div [Class "row"]
+               -< [Div [Class "col-xs-3"]
+                   -< [Div [Class "input-group"]
+                       -< [Span [Class "input-group-addon"; Id "url-addon"] -< [Text "twothumbsup.com/vote/"]
+                           input_url]
+                       ]
+                   ]
+            Br []
+            Div [Class "row"]
+            -< [Div [Class "col-xs-5"]
+                -< [Input [Type "submit"; Class "btn btn-default btn-xs"; Value "+"]
+                    |>! OnClick (fun x e ->
+                        e.Event.PreventDefault ()
+                        addNewInput ())]
+                ]
+            Br []
+            optionInputsDiv
+            Div [Class "row"]
+            -< [Div [Class "col-xs-5"]
+                -< [Button [Type "button"; Class "btn btn-default"; Text "Create"]
+                    |>! OnClick (fun x e ->
+                        e.Event.PreventDefault ()
+                        Async.Start (createVotingRoom input_url.Value))
+                    ]
+                ]
+            ]
     
     let form_submitVote votingRoomName (votingRoom: VotingRoomState) =
         let optionsDiv = Div []

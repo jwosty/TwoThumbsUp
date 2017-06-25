@@ -36,28 +36,7 @@ module Site =
         Content.WithTemplate Templating.MainTemplate
           { browserTitle = "TwoThumbsUp - Create voting room"
             title = "Create a voting room"
-            content =
-               [Form [Attr.Action "/404"]
-                -< [Div [Class "row"]
-                    -< [Div [Class "col-xs-3"]
-                        -< [Div [Class "input-group"]
-                            -< [Span [Class "input-group-addon"; Id "url-addon"] -< [Text "twothumbsup.com/vote/"]
-                                Input [Type "text"; Class "form-control"; Id "input-url"; PlaceHolder "url"; Value defaultVotingRoomName;
-                                       AutoFocus "autofocus"; AutoComplete "off"; NewAttr "auto-capitalize" "none"]]
-                            ]
-                        ]
-                    Br []
-                    Div [Class "row"]
-                    -< [Div [Class "col-xs-5"]
-                        -< [Input [Type "submit"; Class "btn btn-default btn-xs"; Id "add-option"; Value "+"]]
-                        ]
-                    Br []
-                    Div [ClientSide <@ Client.form_createVote defaultVotingRoomName @>]
-                    Div [Class "row"]
-                    -< [Div [Class "col-xs-5"]
-                        -< [Button [Type "button"; Class "btn btn-default"; Id "create-vote-room"] -< [Text "Create"]]]
-                    ]
-                ] }
+            content = [Div [ClientSide <@ Client.form_createVote defaultVotingRoomName @>]] }
     
     let ManageVotePage votingRoomName =
         let url = "/vote/" + votingRoomName
