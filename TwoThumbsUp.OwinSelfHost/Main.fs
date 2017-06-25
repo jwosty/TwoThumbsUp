@@ -10,7 +10,7 @@ module Templating =
 
     type MainTemplateData =
       { browserTitle: string
-        title: string
+        title: Element list
         content: Element list }
 
     let MainTemplate =
@@ -19,18 +19,13 @@ module Templating =
                .With("title", fun data -> data.title)
                .With("content", fun data -> data.content)
 
-    let TemplateSubmitVote =
-        Content.Template<_>("~/SubmitVote.html")
-               .With("title", fun (title: Element list, _) -> title)
-               .With("client-scripts", fun (_, clientCode: Element list) -> clientCode)
-
 module Site =
     let ahref href text = A [ HRef href ] -< [Text text]
 
     let NotFoundPage endPoint =
         Content.WithTemplate Templating.MainTemplate {
             browserTitle = "Page not found - TwoThumbsUp"
-            title = "Page not found"
+            title = [Text "Page not found"]
             content =
                [Span [Class "text-sub-heading"]
                 -< [Text "The requested URL "
@@ -41,32 +36,35 @@ module Site =
     let CreateVotePage votingRoomName endPoint =
         Content.WithTemplate Templating.MainTemplate
           { browserTitle = "TwoThumbsUp - Create voting room"
-            title = "Create a voting room"
+            title = [Text "Create a voting room"]
             content = [Div [ClientSide <@ Client.form_createVote votingRoomName @>]] }
     
     let IndexPage = CreateVotePage ""
 
     let ManageVotePage votingRoomName endPoint =
-        let url = "/vote/" + votingRoomName
-        Content.WithTemplate Templating.TemplateSubmitVote
-          ([Text "Manage "; ahref url url],
-           [])
+        let url = link (Vote votingRoomName)
+        Content.WithTemplate Templating.MainTemplate
+          { browserTitle = "Manage voting room - TwoThumbsUp"
+            title = [Text "Manage "; ahref url url]
+            content = [] }
     
     let VotePage votingRoomName endPoint = async {
         let! votingRoom = AppState.postMessageAndReply votingRoomName RetrieveState
         match votingRoom with
         | Some(votingRoom) ->
-            // WebSharper templating performs escaping
+            // WebSharper templating performs escaping for us
             return!
                 Content.WithTemplate Templating.MainTemplate
-                  { browserTitle = "Vote! - TwoThumbsUp"; title = "Vote in /vote/" + votingRoomName
+                  { browserTitle = "Vote! - TwoThumbsUp"
+                    title = [Text (sprintf "Vote in %s" (link (Vote votingRoomName)))]
                     content = [Div [ClientSide <@ Client.form_submitVote votingRoomName votingRoom @>]] }
         | None -> return! CreateVotePage votingRoomName endPoint }
 
     let ViewVotePage votingRoomName endPoint =
-        Content.WithTemplate Templating.TemplateSubmitVote
-          ([Text ("Viewing: " + votingRoomName)],
-           [Div [ClientSide <@ Client.form_viewVote votingRoomName @>]])
+        Content.WithTemplate Templating.MainTemplate
+         { browserTitle = "Results - TwoThumbsUp "
+           title = [Text (sprintf "Viewing results in %s" votingRoomName)]
+           content = [Div [ClientSide <@ Client.form_viewVote votingRoomName @>]] }
 
     let Controller =
         { Handle = fun action ->

@@ -34,7 +34,7 @@
         </div>
     </div>
     <div class="container content">
-        <h2>${title}</h2>
+        <h2 data-hole="title" />
         <div id="resultInfo"></div>
         <div class="content" data-hole="content"/>
     </div>
