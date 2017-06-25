@@ -30,7 +30,7 @@ module Vote =
     
     let toStrMap = Map.toList fromStrMap |> List.map (fun (s, v) -> v, s) |> Map.ofList
 
-type VotingRoomState = { optionVotes: Map<string, Map<Vote, int>> }
+type VotingRoomState = Voting of Map<string, Map<Vote, int>>
 
 [<JavaScript>]
 type VotingRoomMessage =
@@ -48,36 +48,38 @@ type VotingRoomAgent() =
     let agent = MailboxProcessor.Start (fun inbox ->
         let rec messageLoop state = async {
             let! message = inbox.Receive ()
-            
+
             let state' =
-                match message with
-                | AddOption optionName ->
-                    Some({ state with optionVotes = Map.add optionName initialTally state.optionVotes })
-                | AddOptions optionNames ->
-                    let optionVotes =
-                        optionNames |> List.fold (fun optionVotes optionName ->
-                            Map.add optionName initialTally optionVotes) state.optionVotes
-                    Some ({ state with optionVotes = optionVotes })
-                | RemoveOption optionName ->
-                    let optionVotes =
-                        state.optionVotes |> Map.filter (fun optionName' tallies ->
-                        optionName' = optionName)
-                    Some({ state with optionVotes = optionVotes })
-                | SubmitVote votes ->
-                    let optionVotes =
-                        state.optionVotes |> Map.map (fun option votesInfo ->
-                            votesInfo |> Map.map (fun vote tally ->
-                                if votes.[option] = vote then tally + 1 else tally))
-                    Some({ state with optionVotes = optionVotes })
-                | RetrieveState replyChannel ->
-                    replyChannel.Reply state
-                    None
+                match state with
+                | Voting optionVotes ->
+                    match message with
+                    | AddOption optionName ->
+                        Some(Voting (Map.add optionName initialTally optionVotes))
+                    | AddOptions optionNames ->
+                        let optionVotes =
+                            optionNames |> List.fold (fun optionVotes optionName ->
+                                Map.add optionName initialTally optionVotes) optionVotes
+                        Some (Voting optionVotes)
+                    | RemoveOption optionName ->
+                        let optionVotes =
+                            optionVotes |> Map.filter (fun optionName' tallies ->
+                            optionName' = optionName)
+                        Some(Voting optionVotes)
+                    | SubmitVote votes ->
+                        let optionVotes =
+                            optionVotes |> Map.map (fun option votesInfo ->
+                                votesInfo |> Map.map (fun vote tally ->
+                                    if votes.[option] = vote then tally + 1 else tally))
+                        Some(Voting optionVotes )
+                    | RetrieveState replyChannel ->
+                        replyChannel.Reply state
+                        None
             match state' with
             | Some(state') ->
                 onStateChanged.Trigger state'
                 return! messageLoop state'
             | None -> return! messageLoop state }
-        messageLoop { optionVotes = Map.empty })
+        messageLoop (Voting Map.empty))
     
     member this.Post message = agent.Post message
     member this.PostAndReply f = agent.PostAndAsyncReply f

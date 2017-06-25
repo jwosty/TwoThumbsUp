@@ -110,55 +110,58 @@ module Client =
                 ]
             ]
     
-    let form_submitVote votingRoomName (votingRoom: VotingRoomState) =
-        let optionsDiv = Div []
-        let submitButton = Button [ Attr.Class "btn btn-default"; Text "Cast vote" ]
+    let form_submitVote votingRoomName votingRoom =
+        match votingRoom with
+        | Voting optionVotes ->
+            let optionsDiv = Div []
+            let submitButton = Button [ Attr.Class "btn btn-default"; Text "Cast vote" ]
 
-        for kv in votingRoom.optionVotes do
-            printfn "%s" kv.Key
+            for kv in optionVotes do
+                printfn "%s" kv.Key
 
-        let data =
-            // Used to create a unique name for each radio group. The name itself doesn't matter to anything except the
-            // internals of makeRadioGroup
-            let mutable i = 0
-            votingRoom.optionVotes |> Map.map (fun optionName optionVote ->
-                // make a radio group for each option that exists
-                let radioGroup, getSelection = makeRadioGroup ("option" + string i) (Map.toList Vote.toStrMap |> List.rev)
-                let element =
-                    Div [Attr.Class "row"]
-                    -< [Div [Attr.Class "col-xs-5"; Text optionName]
-                        -< [radioGroup]]
-                optionsDiv.Append element
-                i <- i + 1
-                getSelection)
+            let data =
+                // Used to create a unique name for each radio group. The name itself doesn't matter to anything except the
+                // internals of makeRadioGroup
+                let mutable i = 0
+                optionVotes |> Map.map (fun optionName optionVote ->
+                    // make a radio group for each option that exists
+                    let radioGroup, getSelection = makeRadioGroup ("option" + string i) (Map.toList Vote.toStrMap |> List.rev)
+                    let element =
+                        Div [Attr.Class "row"]
+                        -< [Div [Attr.Class "col-xs-5"; Text optionName]
+                            -< [radioGroup]]
+                    optionsDiv.Append element
+                    i <- i + 1
+                    getSelection)
         
-        submitButton |> OnClick (fun x e ->
-            data |> Map.map (fun name getSelection -> getSelection ())
-            |> Api.submitVote votingRoomName
-            |> Async.Start)
+            submitButton |> OnClick (fun x e ->
+                data |> Map.map (fun name getSelection -> getSelection ())
+                |> Api.submitVote votingRoomName
+                |> Async.Start)
 
-        Div [
-            optionsDiv
-            submitButton ]
+            Div [
+                optionsDiv
+                submitButton ]
     
     let form_viewVote votingRoomName =
         let tableDiv = Div []
         
         let render votingRoom =
-            // Note: this rebuilds the whole vote table (not a problem -- yet)
-            let voteResultData : (Pagelet list * (string * Pagelet list) list) list =
-              [ yield [],
-                      [ yield "Option", []
-                        for vote in Vote.values -> Vote.toStrMap.[vote], [] ]
-                for (option, voteTallies) in Map.toList votingRoom.optionVotes do
-                    let hasVeto = voteTallies |> Map.exists (fun vote tally -> vote = TwoThumbsDown && tally > 0 )
-                    yield [if hasVeto then yield Attr.Class "danger"],
-                          [ yield option, []
-                            for (vote, tally) in Map.toList voteTallies do
-                                yield string tally, []]]
-            let table = makeTable voteResultData -< [Attr.Class "table table-bordered"]
-            tableDiv.Clear ()
-            tableDiv.Append table
+            match votingRoom with
+            | Voting optionVotes ->
+                let voteResultData : (Pagelet list * (string * Pagelet list) list) list =
+                  [ yield [],
+                          [ yield "Option", []
+                            for vote in Vote.values -> Vote.toStrMap.[vote], [] ]
+                    for (option, voteTallies) in Map.toList optionVotes do
+                        let hasVeto = voteTallies |> Map.exists (fun vote tally -> vote = TwoThumbsDown && tally > 0 )
+                        yield [if hasVeto then yield Attr.Class "danger"],
+                              [ yield option, []
+                                for (vote, tally) in Map.toList voteTallies do
+                                    yield string tally, []]]
+                let table = makeTable voteResultData -< [Attr.Class "table table-bordered"]
+                tableDiv.Clear ()
+                tableDiv.Append table
 
         // Initial update
         async {
