@@ -31,7 +31,7 @@ module Vote =
     let toStrMap = Map.toList fromStrMap |> List.map (fun (s, v) -> v, s) |> Map.ofList
 
 type VotingRoomState =
-    | Brainstorming of Map<string, Map<Vote, int>>
+    | Brainstorming of string list
     | Voting of Map<string, Map<Vote, int>>
 
 [<JavaScript>]
@@ -53,20 +53,15 @@ type VotingRoomAgent() =
 
             let state' =
                 match state with
-                | Voting optionVotes ->
+                | Brainstorming options ->
                     match message with
                     | AddOption optionName ->
-                        Some(Voting (Map.add optionName initialTally optionVotes))
-                    | AddOptions optionNames ->
-                        let optionVotes =
-                            optionNames |> List.fold (fun optionVotes optionName ->
-                                Map.add optionName initialTally optionVotes) optionVotes
-                        Some (Voting optionVotes)
-                    | RemoveOption optionName ->
-                        let optionVotes =
-                            optionVotes |> Map.filter (fun optionName' tallies ->
-                            optionName' = optionName)
-                        Some(Voting optionVotes)
+                        Some(Brainstorming (optionName :: options))
+                    | RetrieveState replyChannel ->
+                        replyChannel.Reply state
+                        None
+                | Voting optionVotes ->
+                    match message with
                     | SubmitVote votes ->
                         let optionVotes =
                             optionVotes |> Map.map (fun option votesInfo ->
@@ -81,7 +76,7 @@ type VotingRoomAgent() =
                 onStateChanged.Trigger state'
                 return! messageLoop state'
             | None -> return! messageLoop state }
-        messageLoop (Voting Map.empty))
+        messageLoop (Brainstorming []))
     
     member this.Post message = agent.Post message
     member this.PostAndReply f = agent.PostAndAsyncReply f
