@@ -48,11 +48,11 @@ module Site =
         let! votingRoom = AppState.postMessageAndReply votingRoomName RetrieveState
         match votingRoom with
         | Some(votingRoom) ->
-            // WebSharper templating automatically performs escaping here, so it's safe
-            // to just stitch strings together in this case
-            return! Content.WithTemplate Templating.TemplateSubmitVote
-                       ([Text ("Vote in /vote/" + votingRoomName)],
-                        [Div [ClientSide <@ Client.form_submitVote votingRoomName votingRoom @>]])
+            // WebSharper templating performs escaping
+            return!
+                Content.WithTemplate Templating.MainTemplate
+                  { browserTitle = "Vote! - TwoThumbsUp"; title = "Vote in /vote/" + votingRoomName
+                    content = [Div [ClientSide <@ Client.form_submitVote votingRoomName votingRoom @>]] }
         | None -> return! IndexPage votingRoomName }
 
     let ViewVotePage votingRoomName =
