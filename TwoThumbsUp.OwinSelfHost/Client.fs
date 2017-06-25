@@ -111,12 +111,19 @@ module Client =
             ]
 
     let form_brainstorm votingRoomName =
-        Div
-           [Div [Class "row"]
+        let input_optionName = Input [Type "text"; Class "form-control"; PlaceHolder "Another good idea"]
+        Form [Attr.Action "/404"]
+        -< [Div [Class "row"]
             -< [Div [Class "col-sm-6 col-xs-12"]
-                -< [Input [Type "text"; Class "form-control"; PlaceHolder "Another good idea"]]
+                -< [input_optionName]
                 Div [Class "col-xs-6"]
-                -< [Button [Type "submit"; Class "btn btn-default"; Text "Add"]]
+                -< [Button [Type "submit"; Class "btn btn-default"; Text "Add"]
+                    |>! OnClick (fun x e ->
+                        e.Event.PreventDefault ()
+                        Async.Start <| async {
+                            do! Api.addOption votingRoomName input_optionName.Value
+                            input_optionName.Value <- "" })
+                    ]
                 ]
             ]
     

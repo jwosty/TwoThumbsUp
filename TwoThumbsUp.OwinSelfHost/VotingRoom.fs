@@ -93,7 +93,7 @@ module AppState =
 
     let tryGetVotingRoomAgent votingRoomName = lock _lock (fun () ->
         Dictionary.tryGetValue votingRoomName votingRooms)
-    
+
     let votingRoomExists votingRoomName = lock _lock (fun () ->
         votingRooms.ContainsKey votingRoomName)
 
@@ -115,8 +115,14 @@ module AppState =
         votingRooms.Remove votingRoomName)
     
     let postMessage votingRoomName message =
+        let agent =
+            match tryGetVotingRoomAgent votingRoomName with
+            | Some agent -> Some agent
+            | None ->
+                tryCreateVotingRoom votingRoomName |> ignore
+                tryGetVotingRoomAgent votingRoomName
         tryGetVotingRoomAgent votingRoomName |> Option.iter (fun votingRoom -> votingRoom.Post message)
-    
+
     let postMessageAndReply votingRoomName message = async {
         match tryGetVotingRoomAgent votingRoomName with
         | Some votingRoom ->
@@ -129,13 +135,13 @@ module Api =
         return AppState.tryCreateVotingRoom votingRoomName }
     
     let [<Rpc>] addOption votingRoomName option = async {
-        AppState.postMessage votingRoomName (AddOption option)}
+        AppState.postMessage votingRoomName (AddOption option) }
 
     let [<Rpc>] addOptions votingRoomName options = async {
         AppState.postMessage votingRoomName (AddOptions options) }
 
     let [<Rpc>] submitVote votingRoomName votes = async {
-        AppState.postMessage votingRoomName (SubmitVote votes)}
+        AppState.postMessage votingRoomName (SubmitVote votes) }
 
     let [<Rpc>] tryRetrieveVotingRoomState votingRoomName =
         AppState.postMessageAndReply votingRoomName RetrieveState
