@@ -30,7 +30,9 @@ module Vote =
     
     let toStrMap = Map.toList fromStrMap |> List.map (fun (s, v) -> v, s) |> Map.ofList
 
-type VotingRoomState = Voting of Map<string, Map<Vote, int>>
+type VotingRoomState =
+    | Brainstorming of Map<string, Map<Vote, int>>
+    | Voting of Map<string, Map<Vote, int>>
 
 [<JavaScript>]
 type VotingRoomMessage =

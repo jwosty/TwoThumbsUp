@@ -47,7 +47,7 @@ module Client =
                         let str, attributes = col.[j]
                         tag (Text str :: attributes) ]]
     
-    let form_createVote (defaultVotingRoomName: string) =
+    let form_createVote votingRoomName =
         let mutable optionInputs = []
         let optionInputsDiv = Div []
 
@@ -78,7 +78,7 @@ module Client =
                         JS.Window.Location.Pathname <- "/vote/" + JS.EncodeURIComponent votingRoomName }
 
         let input_url =
-            Input [Type "text"; Class "form-control"; Id "input-url"; PlaceHolder "url"; Value defaultVotingRoomName;
+            Input [Type "text"; Class "form-control"; Id "input-url"; PlaceHolder "url"; Value votingRoomName;
                    AutoFocus "autofocus"; AutoComplete "off"; NewAttr "auto-capitalize" "none"]
 
         addNewInput ()
@@ -110,6 +110,24 @@ module Client =
                 ]
             ]
     
+    let form_brainstorm votingRoomName =
+        let input_optionName = Input [Type "text"; Class "form-control"; PlaceHolder "Type your option here"]
+
+        Form [Attr.Action "/404"]
+        -< [
+            Div [Class "row"]
+            -< [Div [Class "col-xs-6"] -< [input_optionName]
+                Div [Class "col-xs-6"]
+                -< [Button [Type "submit"; Text "Add idea"]
+                    |>! OnClick (fun x e ->
+                        e.Event.PreventDefault ()
+                        Async.Start <| async {
+                            do! Api.addOption votingRoomName input_optionName.Value
+                            input_optionName.Value <- "" } )
+                    ]
+                ]
+            ]
+
     let form_submitVote votingRoomName votingRoom =
         match votingRoom with
         | Voting optionVotes ->
