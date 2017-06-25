@@ -62,8 +62,9 @@ module Client =
             optionInputs <- newInput :: optionInputs
 
         JQuery("#add-option") |> on "click" (fun x e ->
-            addNewInput ()
-            e.PreventDefault ())
+            printfn "got here"
+            e.PreventDefault ()
+            addNewInput ())
         
         JQuery("#create-vote-room") |> on "click" (fun x e ->
             let votingRoomName = JQuery("#input-url").Prop("value")
