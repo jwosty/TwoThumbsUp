@@ -111,7 +111,25 @@ module Client =
             ]
 
     let form_brainstorm votingRoomName =
+        let div_options = Div []
+
+        let renderOptions () =
+            div_options.Clear ()
+            Async.Start <| async {
+                let! state = Api.tryRetrieveVotingRoomState votingRoomName
+                match state with
+                | None -> ()
+                | Some (Voting optionVotes) ->
+                    for kv in optionVotes do
+                        let optionName = kv.Key
+                        div_options.Append (Text optionName)
+                        div_options.Append (Br [])
+                }
+        
+        renderOptions ()
+
         let input_optionName = Input [Type "text"; Class "form-control"; PlaceHolder "Another good idea"]
+
         Form [Attr.Action "/404"]
         -< [Div [Class "row"]
             -< [Div [Class "col-sm-6 col-xs-12"]
@@ -122,9 +140,11 @@ module Client =
                         e.Event.PreventDefault ()
                         Async.Start <| async {
                             do! Api.addOption votingRoomName input_optionName.Value
-                            input_optionName.Value <- "" })
+                            input_optionName.Value <- ""
+                            renderOptions () })
                     ]
                 ]
+            div_options
             ]
     
     let form_submitVote votingRoomName votingRoom =
