@@ -113,20 +113,29 @@ module Client =
     let form_brainstorm votingRoomName =
         let div_options = Div []
 
-        let renderOptions () =
+        let renderOptions maybeVotingRoomState =
             div_options.Clear ()
-            Async.Start <| async {
-                let! state = Api.tryRetrieveVotingRoomState votingRoomName
-                match state with
-                | None -> ()
-                | Some (Voting optionVotes) ->
-                    for kv in optionVotes do
-                        let optionName = kv.Key
-                        div_options.Append (Text optionName)
-                        div_options.Append (Br [])
-                }
+            match maybeVotingRoomState with
+            | None -> ()
+            | Some (Voting optionVotes) ->
+                for kv in optionVotes do
+                    let optionName = kv.Key
+                    div_options.Append (Text optionName)
+                    div_options.Append (Br [])
         
-        renderOptions ()
+
+        Async.Start <| async {
+            let! _ = Api.tryCreateVotingRoom votingRoomName
+
+            let! state = Api.tryRetrieveVotingRoomState votingRoomName
+            renderOptions state
+
+            let mutable exists = true
+            while exists do
+                let! state = Api.pollStateChange votingRoomName
+                match state with
+                | None -> exists <- false
+                | Some state -> renderOptions (Some state) }
 
         let input_optionName = Input [Type "text"; Class "form-control"; PlaceHolder "Another good idea"]
 
@@ -141,7 +150,8 @@ module Client =
                         Async.Start <| async {
                             do! Api.addOption votingRoomName input_optionName.Value
                             input_optionName.Value <- ""
-                            renderOptions () })
+                            let! state = Api.tryRetrieveVotingRoomState votingRoomName
+                            renderOptions state })
                     ]
                 ]
             div_options
